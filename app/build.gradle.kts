@@ -60,14 +60,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     // navigation for compose
-    implementation("androidx.navigation:navigation-compose:2.8.3")
+    implementation("androidx.navigation:navigation-compose:2.7.0")
 
-// material icons set (CalendarMonth, MenuBook, etc.)
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.compose.material3:material3:1.3.0")
-    implementation("androidx.compose.material:material-icons-extended")
-
-
-
-
+    // material icons set (CalendarMonth, MenuBook, etc.)
+    implementation("androidx.compose.material:material-icons-extended:1.6.7")
 }

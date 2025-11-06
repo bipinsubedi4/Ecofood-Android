@@ -3,36 +3,15 @@ package com.bipin080.ecofood
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.bipin080.ecofood.ui.theme.EcoFoodTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            AppRoot()
+            EcoFoodTheme {
+                AppRoot()
+            }
         }
     }
 }
-
-@Composable
-fun EcoFoodApp() {
-    Surface(color = MaterialTheme.colorScheme.background) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Hello EcoFood 🌱",
-                style = MaterialTheme.typography.headlineMedium,
-                fontSize = 28.sp
-            )
-        }
-    }
-}
-
