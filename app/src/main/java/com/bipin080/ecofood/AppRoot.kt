@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -22,6 +23,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.bipin080.ecofood.ui.theme.CookScreen
+import com.bipin080.ecofood.ui.theme.MarketplaceScreen
 import com.bipin080.ecofood.ui.theme.PantryScreen
 import com.bipin080.ecofood.ui.theme.PlanScreen
 import com.bipin080.ecofood.ui.theme.RecipeScreen
@@ -32,12 +34,14 @@ sealed class Screen(val route: String, val label: String, val icon: @Composable 
     object Plan : Screen("plan", "Plan", { Icon(Icons.Default.CalendarMonth, contentDescription = null) })
     object Pantry : Screen("pantry", "Pantry", { Icon(Icons.Default.Kitchen, contentDescription = null) })
     object Cook : Screen("cook", "Cook", { Icon(Icons.Default.Book, contentDescription = null) })
+    object Marketplace : Screen("marketplace", "Marketplace", { Icon(Icons.Default.Storefront, contentDescription = null) })
 }
 
 val items = listOf(
     Screen.Plan,
     Screen.Pantry,
     Screen.Cook,
+    Screen.Marketplace
 )
 
 @Composable
@@ -76,6 +80,7 @@ fun AppRoot() {
                     navController.navigate("recipe/$encodedRecipe")
                 })
             }
+            composable(Screen.Marketplace.route) { MarketplaceScreen() }
             composable(
                 "recipe/{recipe}",
                 arguments = listOf(navArgument("recipe") { type = NavType.StringType })
