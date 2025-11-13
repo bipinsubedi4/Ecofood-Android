@@ -1,0 +1,16 @@
+package com.bipin080.ecofood.data
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface MarketplaceItemDao {
+
+    @Query("SELECT * FROM marketplace_items")
+    fun getAll(): Flow<List<MarketplaceItem>>
+
+    @Insert
+    suspend fun insert(item: MarketplaceItem)
+}

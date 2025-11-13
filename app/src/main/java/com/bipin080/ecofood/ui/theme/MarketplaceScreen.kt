@@ -10,30 +10,51 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.bipin080.ecofood.data.MarketplaceDatabase
 import com.bipin080.ecofood.data.MarketplaceItem
-import com.bipin080.ecofood.data.fakeMarketplaceItems
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketplaceScreen() {
-    val items by remember { mutableStateOf(fakeMarketplaceItems()) }
+    val context = LocalContext.current
+    val db = remember { MarketplaceDatabase.getDatabase(context) }
+    val items by db.marketplaceItemDao().getAll().collectAsState(initial = emptyList())
+    var showDialog by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Marketplace") })
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add item")
+            }
         }
     ) { paddingValues ->
         LazyColumn(
@@ -46,6 +67,43 @@ fun MarketplaceScreen() {
             items(items) { item ->
                 MarketplaceItemCard(item = item)
             }
+        }
+
+        if (showDialog) {
+            var name by remember { mutableStateOf("") }
+            var description by remember { mutableStateOf("") }
+            var location by remember { mutableStateOf("") }
+            var contact by remember { mutableStateOf("") }
+
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text("Add Item to Marketplace") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Item Name") })
+                        OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
+                        OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") })
+                        OutlinedTextField(value = contact, onValueChange = { contact = it }, label = { Text("Contact Info") })
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                db.marketplaceItemDao().insert(MarketplaceItem(name = name, description = description, location = location, contact = contact))
+                                showDialog = false
+                            }
+                        }
+                    ) {
+                        Text("Add")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
