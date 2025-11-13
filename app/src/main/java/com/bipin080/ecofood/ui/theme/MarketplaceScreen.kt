@@ -42,10 +42,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun MarketplaceScreen() {
     val context = LocalContext.current
-    val db = remember { MarketplaceDatabase.getDatabase(context) }
+    val coroutineScope = rememberCoroutineScope()
+    val db = remember { MarketplaceDatabase.getDatabase(context, coroutineScope) }
     val items by db.marketplaceItemDao().getAll().collectAsState(initial = emptyList())
     var showDialog by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -74,24 +74,62 @@ fun MarketplaceScreen() {
             var description by remember { mutableStateOf("") }
             var location by remember { mutableStateOf("") }
             var contact by remember { mutableStateOf("") }
+            var isNameError by remember { mutableStateOf(false) }
+            var isDescriptionError by remember { mutableStateOf(false) }
+            var isLocationError by remember { mutableStateOf(false) }
+            var isContactError by remember { mutableStateOf(false) }
+
+            fun validateFields() {
+                isNameError = name.isBlank()
+                isDescriptionError = description.isBlank()
+                isLocationError = location.isBlank()
+                isContactError = contact.isBlank()
+            }
 
             AlertDialog(
                 onDismissRequest = { showDialog = false },
                 title = { Text("Add Item to Marketplace") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Item Name") })
-                        OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
-                        OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") })
-                        OutlinedTextField(value = contact, onValueChange = { contact = it }, label = { Text("Contact Info") })
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it; isNameError = it.isBlank() },
+                            label = { Text("Item Name") },
+                            isError = isNameError,
+                            supportingText = { if (isNameError) Text("Item name cannot be empty") }
+                        )
+                        OutlinedTextField(
+                            value = description,
+                            onValueChange = { description = it; isDescriptionError = it.isBlank() },
+                            label = { Text("Description") },
+                            isError = isDescriptionError,
+                            supportingText = { if (isDescriptionError) Text("Description cannot be empty") }
+                        )
+                        OutlinedTextField(
+                            value = location,
+                            onValueChange = { location = it; isLocationError = it.isBlank() },
+                            label = { Text("Location") },
+                            isError = isLocationError,
+                            supportingText = { if (isLocationError) Text("Location cannot be empty") }
+                        )
+                        OutlinedTextField(
+                            value = contact,
+                            onValueChange = { contact = it; isContactError = it.isBlank() },
+                            label = { Text("Contact Info") },
+                            isError = isContactError,
+                            supportingText = { if (isContactError) Text("Contact info cannot be empty") }
+                        )
                     }
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            coroutineScope.launch {
-                                db.marketplaceItemDao().insert(MarketplaceItem(name = name, description = description, location = location, contact = contact))
-                                showDialog = false
+                            validateFields()
+                            if (!isNameError && !isDescriptionError && !isLocationError && !isContactError) {
+                                coroutineScope.launch {
+                                    db.marketplaceItemDao().insert(MarketplaceItem(name = name, description = description, location = location, contact = contact))
+                                    showDialog = false
+                                }
                             }
                         }
                     ) {
