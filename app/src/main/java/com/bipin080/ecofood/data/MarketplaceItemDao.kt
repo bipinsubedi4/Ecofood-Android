@@ -13,4 +13,7 @@ interface MarketplaceItemDao {
 
     @Insert
     suspend fun insert(item: MarketplaceItem)
+
+    @Query("DELETE FROM marketplace_items")
+    suspend fun deleteAll()
 }

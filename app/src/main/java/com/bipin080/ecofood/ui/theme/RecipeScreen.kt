@@ -1,80 +1,44 @@
 package com.bipin080.ecofood.ui.theme
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Eco
-import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
-
-data class ParsedRecipe(
-    val title: String,
-    val prepTime: String,
-    val cookTime: String,
-    val ingredients: List<String>,
-    val optionalIngredients: List<String>,
-    val instructions: List<String>,
-    val ecoTip: String
-)
-
-@Composable
-fun rememberParsedRecipe(recipeString: String): ParsedRecipe {
-    return remember(recipeString) {
-        val decodedString = URLDecoder.decode(recipeString, StandardCharsets.UTF_8.name())
-        val lines = decodedString.lines().map { it.trim() }.filter { it.isNotBlank() }
-
-        val title = lines.find { it.startsWith("Recipe Title:") }?.substringAfter(":")?.trim() ?: "Generated Recipe"
-        val prepTime = lines.find { it.startsWith("Prep Time:") }?.substringAfter(":")?.trim() ?: "N/A"
-        val cookTime = lines.find { it.startsWith("Cook Time:") }?.substringAfter(":")?.trim() ?: "N/A"
-
-        val ingredientsStartIndex = lines.indexOf("Ingredients You Have:")
-        val optionalIngredientsStartIndex = lines.indexOf("Optional Ingredients:")
-        val instructionsStartIndex = lines.indexOf("Instructions:")
-        val ecoTipStartIndex = lines.indexOf("Eco Tip:")
-
-        val ingredients = if (ingredientsStartIndex != -1) {
-            val endIndex = listOfNotNull(optionalIngredientsStartIndex.takeIf { it > 0 }, instructionsStartIndex.takeIf { it > 0 }, ecoTipStartIndex.takeIf { it > 0 }, lines.size).minOrNull()!!
-            lines.subList(ingredientsStartIndex + 1, endIndex).map { it.removePrefix("-").trim() }
-        } else { emptyList() }
-
-        val optionalIngredients = if (optionalIngredientsStartIndex != -1) {
-            val endIndex = listOfNotNull(instructionsStartIndex.takeIf { it > 0 }, ecoTipStartIndex.takeIf { it > 0 }, lines.size).minOrNull()!!
-            lines.subList(optionalIngredientsStartIndex + 1, endIndex).map { it.removePrefix("-").trim() }
-        } else { emptyList() }
-
-        val instructions = if (instructionsStartIndex != -1) {
-            val endIndex = listOfNotNull(ecoTipStartIndex.takeIf { it > 0 }, lines.size).minOrNull()!!
-            lines.subList(instructionsStartIndex + 1, endIndex)
-        } else { emptyList() }
-
-        val ecoTip = if (ecoTipStartIndex != -1) {
-            lines.subList(ecoTipStartIndex + 1, lines.size).joinToString("\n")
-        } else { "No tip available." }
-
-        ParsedRecipe(title, prepTime, cookTime, ingredients, optionalIngredients, instructions, ecoTip)
-    }
-}
-
+import com.bipin080.ecofood.data.GeneratedRecipe
+import com.bipin080.ecofood.data.RecipeIngredient
+import com.bipin080.ecofood.viewmodel.RecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeScreen(recipe: String, onNavigateUp: () -> Unit) {
-    val parsedRecipe = rememberParsedRecipe(recipe)
+fun RecipeScreen(
+    recipeViewModel: RecipeViewModel,
+    onNavigateUp: () -> Unit
+) {
+    val recipeData by recipeViewModel.recipe.collectAsState()
+    var showShoppingList by remember { mutableStateOf(false) }
+
+    if (recipeData == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(parsedRecipe.title, maxLines = 1) },
+                title = { Text(recipeData!!.title, maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -83,64 +47,107 @@ fun RecipeScreen(recipe: String, onNavigateUp: () -> Unit) {
             )
         }
     ) { paddingValues ->
-        Column(
+        LazyColumn(
             modifier = Modifier
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
-                .fillMaxSize(),
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            item {
+                Text(recipeData!!.description, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    InfoCard(icon = Icons.Default.Timer, label = "Cooking Time", value = recipeData!!.cookingTime, modifier = Modifier.weight(1f))
+                    InfoCard(icon = Icons.Default.People, label = "Servings", value = recipeData!!.servings, modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    InfoCard(icon = Icons.Default.Eco, label = "Waste Reduction", value = recipeData!!.wasteReduction, modifier = Modifier.weight(1f))
+                    InfoCard(icon = Icons.Default.ShowChart, label = "Calories per serving", value = recipeData!!.calories, modifier = Modifier.weight(1f))
+                }
+                Spacer(modifier = Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Prep: ${parsedRecipe.prepTime}")
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Cook: ${parsedRecipe.cookTime}")
+                    Text("Ingredients", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Button(onClick = { showShoppingList = true }, enabled = recipeData!!.ingredients.any { !it.inPantry }) {
+                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Shopping List")
+                    }
                 }
             }
-            Divider()
+            items(recipeData!!.ingredients) { ingredient ->
+                IngredientItem(ingredient)
+            }
+        }
 
-            RecipeSection("Ingredients") {
-                if (parsedRecipe.ingredients.isNotEmpty()){
-                    Text("What You Have:", style = MaterialTheme.typography.titleMedium)
-                    parsedRecipe.ingredients.forEach { Text("- $it") }
+        if (showShoppingList) {
+            val shoppingList = recipeData!!.ingredients.filter { !it.inPantry }
+            AlertDialog(
+                onDismissRequest = { showShoppingList = false },
+                title = { Text("Shopping List") },
+                text = {
+                    Column {
+                        shoppingList.forEach {
+                            Text("- ${it.quantity} ${it.name}")
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showShoppingList = false }) {
+                        Text("OK")
+                    }
                 }
-                if (parsedRecipe.optionalIngredients.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("Optional:", style = MaterialTheme.typography.titleMedium)
-                    parsedRecipe.optionalIngredients.forEach { Text("- $it") }
-                }
-            }
-
-            RecipeSection("Instructions") {
-                 parsedRecipe.instructions.forEach { Text(it) }
-            }
-
-            RecipeSection("Eco Tip") {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Eco, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(parsedRecipe.ecoTip)
-                }
-            }
+            )
         }
     }
 }
 
 @Composable
-fun RecipeSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+fun InfoCard(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String, modifier: Modifier = Modifier) {
+    Card(modifier = modifier, elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(label, style = MaterialTheme.typography.bodySmall)
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun IngredientItem(ingredient: RecipeIngredient) {
     Column {
-        Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(8.dp))
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                content()
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(if (ingredient.inPantry) Color.Green else Color.Red)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text("${ingredient.quantity} ${ingredient.name}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        }
+        Row(modifier = Modifier.padding(start = 24.dp)) {
+            ingredient.tags.forEach {
+                Chip(label = it)
+                Spacer(modifier = Modifier.width(8.dp))
             }
         }
+        Divider(modifier = Modifier.padding(top = 16.dp))
+    }
+}
+
+@Composable
+fun Chip(label: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+        shape = CircleShape
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+        )
     }
 }

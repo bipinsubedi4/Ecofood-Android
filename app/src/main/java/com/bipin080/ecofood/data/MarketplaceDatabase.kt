@@ -8,10 +8,11 @@ import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.util.Date
 import java.util.UUID
 
-@Database(entities = [MarketplaceItem::class], version = 1)
-@TypeConverters(Converters::class)
+@Database(entities = [MarketplaceItem::class], version = 3) // Incremented version
+@TypeConverters(MarketplaceConverters::class)
 abstract class MarketplaceDatabase : RoomDatabase() {
 
     abstract fun marketplaceItemDao(): MarketplaceItemDao
@@ -27,6 +28,7 @@ abstract class MarketplaceDatabase : RoomDatabase() {
                     MarketplaceDatabase::class.java,
                     "marketplace_database"
                 )
+                .fallbackToDestructiveMigration() // Handles schema changes
                 .addCallback(MarketplaceDatabaseCallback(scope))
                 .build()
                 INSTANCE = instance
@@ -44,7 +46,9 @@ abstract class MarketplaceDatabase : RoomDatabase() {
             INSTANCE?.let { database ->
                 scope.launch {
                     val dao = database.marketplaceItemDao()
-                    fakeMarketplaceItems().forEach { 
+                    // Clear old data and pre-populate with new data
+                    dao.deleteAll()
+                    fakeMarketplaceItems().forEach {
                         dao.insert(it)
                     }
                 }
@@ -53,7 +57,17 @@ abstract class MarketplaceDatabase : RoomDatabase() {
     }
 }
 
-class Converters {
+class MarketplaceConverters {
+    @androidx.room.TypeConverter
+    fun fromTimestamp(value: Long?): Date? {
+        return value?.let { Date(it) }
+    }
+
+    @androidx.room.TypeConverter
+    fun dateToTimestamp(date: Date?): Long? {
+        return date?.time
+    }
+    
     @androidx.room.TypeConverter
     fun fromUUID(uuid: UUID): String {
         return uuid.toString()

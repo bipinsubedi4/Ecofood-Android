@@ -2,46 +2,33 @@ package com.bipin080.ecofood.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Green,
-    secondary = DarkGreen,
-    background = Black,
-    surface = Black,
-    onPrimary = Black,
-    onSecondary = White,
-    onBackground = White,
-    onSurface = White
-)
+import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = Green,
+    primary = PrimaryGreen,
+    onPrimary = Color.White,
     secondary = DarkGreen,
-    background = White,
-    surface = White,
-    onPrimary = White,
-    onSecondary = Black,
-    onBackground = Black,
-    onSurface = Black
+    onSecondary = Color.White,
+    background = LightGray,
+    onBackground = Charcoal,
+    surface = Color.White,
+    onSurface = Charcoal,
+    error = ErrorRed,
+    onError = Color.White
 )
 
 @Composable
 fun EcoFoodTheme(
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) {
-        DarkColorScheme
-    } else {
-        LightColorScheme
-    }
+    val colorScheme = LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = AppTypography, // Use the renamed typography
         content = content
     )
 }

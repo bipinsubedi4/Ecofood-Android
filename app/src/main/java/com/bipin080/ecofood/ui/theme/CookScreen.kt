@@ -1,62 +1,58 @@
 package com.bipin080.ecofood.ui.theme
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.bipin080.ecofood.R
+import com.bipin080.ecofood.data.GeneratedRecipe
+import com.bipin080.ecofood.data.PantryItem
+import com.bipin080.ecofood.data.RecipeIngredient
+import com.bipin080.ecofood.viewmodel.PantryViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun CookScreen(onGenerateRecipe: (String) -> Unit) {
+fun CookScreen(
+    pantryViewModel: PantryViewModel = viewModel(),
+    onGenerateRecipe: (GeneratedRecipe) -> Unit
+) {
     var ingredientInput by remember { mutableStateOf("") }
     val ingredients = remember { mutableStateListOf<String>() }
     var servings by remember { mutableIntStateOf(4) }
     var isLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val pantryItems by pantryViewModel.pantryItems.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Leftover Magic") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.app_logo),
+                            contentDescription = "EcoFood Logo",
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("AI Recipe Generator")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                    titleContentColor = MaterialTheme.colorScheme.primary
                 )
             )
         }
@@ -154,7 +150,7 @@ fun CookScreen(onGenerateRecipe: (String) -> Unit) {
                         if (ingredients.isNotEmpty()) {
                             isLoading = true
                             coroutineScope.launch {
-                                val recipe = generateRecipe(ingredients, servings.toString())
+                                val recipe = generateRecipe(ingredients, pantryItems, servings.toString())
                                 onGenerateRecipe(recipe)
                                 isLoading = false
                             }
@@ -169,46 +165,39 @@ fun CookScreen(onGenerateRecipe: (String) -> Unit) {
     }
 }
 
-suspend fun generateRecipe(ingredients: List<String>, servings: String): String {
-    // Simulate a network call to a Gemini-like API
+suspend fun generateRecipe(
+    userIngredients: List<String>,
+    pantry: List<PantryItem>,
+    servings: String
+): GeneratedRecipe {
+    // Simulate a network call and complex logic
     delay(2000)
 
-    val mainIngredient = ingredients.firstOrNull() ?: "something delicious"
-    val otherIngredients = ingredients.drop(1)
+    // A hardcoded full recipe for demonstration
+    val fullRecipeIngredients = listOf(
+        RecipeIngredient("Chicken Breast", "500 g", listOf("protein", "gluten-free"), inPantry = false),
+        RecipeIngredient("Jasmine Rice", "2 cups", listOf("grain", "vegan", "gluten-free"), inPantry = false),
+        RecipeIngredient("Broccoli", "400 g", listOf("vegetable", "vegan", "gluten-free"), inPantry = false),
+        RecipeIngredient("Garlic", "3 cloves", listOf("seasoning", "vegan", "gluten-free"), inPantry = false),
+        RecipeIngredient("Soy Sauce", "2 tbsp", listOf("seasoning", "vegan"), inPantry = false)
+    )
 
-    val recipeTitle = "Gemini's Fusion ${mainIngredient.replaceFirstChar { it.uppercase() }} Medley"
+    // Check pantry for ingredients
+    val pantryNames = pantry.map { it.name.lowercase() }
+    val finalIngredients = fullRecipeIngredients.map { ingredient ->
+        val ingredientInPantry = pantryNames.any { pantryName ->
+            pantryName.contains(ingredient.name.lowercase().substring(0, 4))
+        } || userIngredients.any { it.lowercase().contains(ingredient.name.lowercase().substring(0, 4)) }
+        ingredient.copy(inPantry = ingredientInPantry)
+    }
 
-    val ingredientsYouHave = ingredients.joinToString("\n") { "- $it" }
-
-    val optionalIngredients = """
-        - 2 cloves of garlic
-        - 1 tsp of soy sauce
-        - A pinch of red pepper flakes
-    """.trimIndent()
-
-    val instructions = """
-        1. Finely chop the garlic. Prepare the ${otherIngredients.joinToString(" and ")} as needed.
-        2. Heat a pan over medium heat with a tablespoon of olive oil. Add the $mainIngredient and cook until golden.
-        3. Add the remaining ingredients, including the optional ones if you have them. Stir for 5-7 minutes.
-        4. Serve hot for $servings people and enjoy your sustainable meal!
-    """.trimIndent()
-
-    val ecoTip = "Don't forget to compost your vegetable scraps! They can enrich the soil for future plants."
-
-    return """
-        Recipe Title: $recipeTitle
-        Prep Time: 15 minutes
-        Cook Time: 20 minutes
-
-        Ingredients You Have:
-$ingredientsYouHave
-
-        Optional Ingredients:
-$optionalIngredients
-
-        Instructions:
-$instructions
-
-        Eco Tip: $ecoTip
-    """.trimIndent()
+    return GeneratedRecipe(
+        title = "Eco-Friendly Chicken & Vegetable Rice Bowl",
+        description = "A sustainable one-pot meal that minimizes waste and maximizes nutrition.",
+        cookingTime = "25 minutes",
+        servings = servings,
+        wasteReduction = "85%",
+        calories = "420",
+        ingredients = finalIngredients
+    )
 }
