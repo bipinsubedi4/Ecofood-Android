@@ -55,7 +55,7 @@ fun RecipeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Text(recipeData!!.description, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                Text(recipeData!!.description, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.secondary)
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     InfoCard(icon = Icons.Default.Timer, label = "Cooking Time", value = recipeData!!.cookingTime, modifier = Modifier.weight(1f))
@@ -70,7 +70,7 @@ fun RecipeScreen(
                     Text("Ingredients", style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.weight(1f))
                     Button(onClick = { showShoppingList = true }, enabled = recipeData!!.ingredients.any { !it.inPantry }) {
-                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Shopping List")
                     }
@@ -123,12 +123,12 @@ fun IngredientItem(ingredient: RecipeIngredient) {
                 modifier = Modifier
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(if (ingredient.inPantry) Color.Green else Color.Red)
+                    .background(if (ingredient.inPantry) SuccessGreen else MaterialTheme.colorScheme.error)
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text("${ingredient.quantity} ${ingredient.name}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
         }
-        Row(modifier = Modifier.padding(start = 24.dp)) {
+        Row(modifier = Modifier.padding(start = 24.dp, top = 4.dp)) {
             ingredient.tags.forEach {
                 Chip(label = it)
                 Spacer(modifier = Modifier.width(8.dp))

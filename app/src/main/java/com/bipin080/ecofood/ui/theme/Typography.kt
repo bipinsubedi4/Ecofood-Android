@@ -8,32 +8,52 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.bipin080.ecofood.R
 
-val Lato = FontFamily(
+// It seems you have Lato fonts, I will use those.
+// If you add Nunito fonts, you can switch to the commented out code.
+val AppFontFamily = FontFamily(
     Font(R.font.lato_regular, FontWeight.Normal),
     Font(R.font.lato_bold, FontWeight.Bold)
 )
 
-// Renamed to AppTypography to avoid conflict
+/*
+val Nunito = FontFamily(
+    Font(R.font.nunito_regular, FontWeight.Normal),
+    Font(R.font.nunito_bold, FontWeight.Bold)
+)
+*/
+
 val AppTypography = Typography(
     headlineMedium = TextStyle(
-        fontFamily = Lato,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
-        lineHeight = 36.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 36.sp
     ),
     titleLarge = TextStyle(
-        fontFamily = Lato,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
+        lineHeight = 28.sp
     ),
     bodyLarge = TextStyle(
-        fontFamily = Lato,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = AppFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.25.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = AppFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     )
 )

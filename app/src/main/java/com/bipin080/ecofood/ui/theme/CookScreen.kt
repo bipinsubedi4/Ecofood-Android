@@ -2,7 +2,10 @@ package com.bipin080.ecofood.ui.theme
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -11,8 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bipin080.ecofood.R
@@ -44,14 +48,14 @@ fun CookScreen(
                         Image(
                             painter = painterResource(id = R.drawable.app_logo),
                             contentDescription = "EcoFood Logo",
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp))
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("AI Recipe Generator")
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("AI Recipe Generator", style = MaterialTheme.typography.titleLarge)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.primary
                 )
             )
@@ -64,10 +68,9 @@ fun CookScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Ingredients Card
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("What ingredients do you have?")
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text("What ingredients do you have?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = ingredientInput,
@@ -75,19 +78,17 @@ fun CookScreen(
                         label = { Text("e.g., chicken, tomatoes, rice") },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Button(onClick = {
                         if (ingredientInput.isNotBlank()) {
                             ingredients.add(ingredientInput.trim())
                             ingredientInput = ""
                         }
                     }) {
-                        Text("Add")
+                        Text("Add Ingredient")
                     }
                     if (ingredients.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Your ingredients:", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -98,12 +99,7 @@ fun CookScreen(
                                     selected = false,
                                     onClick = { ingredients.remove(ingredient) },
                                     label = { Text(ingredient) },
-                                    trailingIcon = {
-                                        Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = "Remove ingredient"
-                                        )
-                                    }
+                                    trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove ingredient") }
                                 )
                             }
                         }
@@ -111,14 +107,13 @@ fun CookScreen(
                 }
             }
 
-            // Servings Card
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("How many people are you cooking for?")
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("How many people are you cooking for?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(16.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
@@ -129,8 +124,8 @@ fun CookScreen(
                         }
                         Text(
                             text = servings.toString(),
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier.padding(horizontal = 24.dp)
                         )
                         IconButton(onClick = { servings++ }) {
                             Icon(Icons.Default.Add, contentDescription = "Increase servings")
@@ -139,10 +134,13 @@ fun CookScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.weight(1f))
+
             if (isLoading) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()){
                     CircularProgressIndicator()
-                    Text("Gemini is thinking...", style = MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("The AI is thinking...", style = MaterialTheme.typography.bodyMedium)
                 }
             } else {
                 Button(
@@ -156,9 +154,10 @@ fun CookScreen(
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Generate Eco-Friendly Recipe")
+                    Text("Generate Recipe", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                 }
             }
         }

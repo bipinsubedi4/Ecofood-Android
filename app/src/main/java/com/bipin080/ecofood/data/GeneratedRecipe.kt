@@ -1,5 +1,8 @@
 package com.bipin080.ecofood.data
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class RecipeIngredient(
     val name: String,
     val quantity: String,
@@ -7,6 +10,7 @@ data class RecipeIngredient(
     val inPantry: Boolean
 )
 
+@Serializable
 data class GeneratedRecipe(
     val title: String,
     val description: String,

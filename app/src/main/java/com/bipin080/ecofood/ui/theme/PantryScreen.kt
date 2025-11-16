@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
@@ -12,7 +13,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,14 +38,16 @@ fun PantryScreen(pantryViewModel: PantryViewModel = viewModel()) {
                         Image(
                             painter = painterResource(id = R.drawable.app_logo),
                             contentDescription = "EcoFood Logo",
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(8.dp))
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Smart Inventory")
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Smart Inventory", style = MaterialTheme.typography.titleLarge)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.primary
                 )
             )
@@ -58,9 +63,10 @@ fun PantryScreen(pantryViewModel: PantryViewModel = viewModel()) {
         ) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Track your groceries with expiry dates and get AI-powered notifications.",
+                "Keep your pantry organized and never let good food go to waste.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
             )
             
             AddProductCard { newItem ->
@@ -87,27 +93,36 @@ fun AddProductCard(onAddItem: (PantryItem) -> Unit) {
     val showPurchaseDatePicker = remember { mutableStateOf(false) }
     val showExpiryDatePicker = remember { mutableStateOf(false) }
 
+    val isFormValid by remember(name, quantity, purchaseDate, expiryDate) {
+        mutableStateOf(
+            name.isNotBlank() && quantity.isNotBlank() && purchaseDate != null && expiryDate != null
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Add Product to Inventory", style = MaterialTheme.typography.titleLarge)
+        Column(modifier = Modifier.padding(24.dp)) {
+            Text("Add a New Item", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Product name (e.g., Milk)") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = name.isBlank()
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = quantity,
                     onValueChange = { quantity = it },
-                    label = { Text("Qty") },
-                    modifier = Modifier.weight(1f)
+                    label = { Text("Quantity") },
+                    modifier = Modifier.weight(1f),
+                    isError = quantity.isBlank()
                 )
                 ExposedDropdownMenuBox(
                     expanded = isUnitDropdownExpanded,
@@ -142,6 +157,7 @@ fun AddProductCard(onAddItem: (PantryItem) -> Unit) {
                 label = { Text("Purchase Date") },
                 modifier = Modifier.fillMaxWidth(),
                 readOnly = true,
+                isError = purchaseDate == null,
                 trailingIcon = {
                     IconButton(onClick = { showPurchaseDatePicker.value = true }) {
                         Icon(Icons.Default.DateRange, contentDescription = "Select Purchase Date")
@@ -155,6 +171,7 @@ fun AddProductCard(onAddItem: (PantryItem) -> Unit) {
                 label = { Text("Expiry Date") },
                 modifier = Modifier.fillMaxWidth(),
                 readOnly = true,
+                isError = expiryDate == null,
                 trailingIcon = {
                     IconButton(onClick = { showExpiryDatePicker.value = true }) {
                         Icon(Icons.Default.DateRange, contentDescription = "Select Expiry Date")
@@ -164,16 +181,12 @@ fun AddProductCard(onAddItem: (PantryItem) -> Unit) {
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
-                    val pDate = purchaseDate ?: Date()
-                    val eDate = expiryDate ?: Date()
-                    val qty = quantity.toIntOrNull() ?: 1
-                    
                     val newItem = PantryItem(
                         name = name,
-                        quantity = qty,
+                        quantity = quantity.toIntOrNull() ?: 1,
                         unit = unit,
-                        purchaseDate = pDate,
-                        expiryDate = eDate
+                        purchaseDate = purchaseDate!!,
+                        expiryDate = expiryDate!!
                     )
                     onAddItem(newItem)
                     
@@ -182,24 +195,31 @@ fun AddProductCard(onAddItem: (PantryItem) -> Unit) {
                     purchaseDate = null
                     expiryDate = null
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = isFormValid
             ) {
-                Text("Add to Inventory", style = MaterialTheme.typography.bodyLarge)
+                Text("Add to Inventory", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
             }
         }
     }
 
     if (showPurchaseDatePicker.value) {
-        val datePickerState = rememberDatePickerState()
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+        val isDateValid = (datePickerState.selectedDateMillis ?: 0) <= System.currentTimeMillis()
+
         DatePickerDialog(
             onDismissRequest = { showPurchaseDatePicker.value = false },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        purchaseDate = Date(it)
-                    }
-                    showPurchaseDatePicker.value = false
-                }) {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            purchaseDate = Date(it)
+                        }
+                        showPurchaseDatePicker.value = false
+                    },
+                    enabled = isDateValid
+                ) {
                     Text("OK")
                 }
             },
@@ -214,16 +234,21 @@ fun AddProductCard(onAddItem: (PantryItem) -> Unit) {
     }
 
     if (showExpiryDatePicker.value) {
-        val datePickerState = rememberDatePickerState()
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+        val isDateValid = (datePickerState.selectedDateMillis ?: 0) > System.currentTimeMillis()
+
         DatePickerDialog(
             onDismissRequest = { showExpiryDatePicker.value = false },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        expiryDate = Date(it)
-                    }
-                    showExpiryDatePicker.value = false
-                }) {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            expiryDate = Date(it)
+                        }
+                        showExpiryDatePicker.value = false
+                    },
+                    enabled = isDateValid
+                ) {
                     Text("OK")
                 }
             },
@@ -240,69 +265,10 @@ fun AddProductCard(onAddItem: (PantryItem) -> Unit) {
 
 @Composable
 fun InventoryCard(items: List<PantryItem>) {
-    var filter by remember { mutableStateOf("All") }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Your Inventory", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = filter == "All", onClick = { filter = "All" }, label = { Text("All Items") })
-                FilterChip(selected = filter == "Expiring Soon", onClick = { filter = "Expiring Soon" }, label = { Text("Expiring Soon") })
-                FilterChip(selected = filter == "Expired", onClick = { filter = "Expired" }, label = { Text("Expired") })
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            val filteredItems = when (filter) {
-                "Expiring Soon" -> items.filter { it.expiryDate.time > System.currentTimeMillis() && (it.expiryDate.time - System.currentTimeMillis()) < 3 * 24 * 60 * 60 * 1000 } // 3 days
-                "Expired" -> items.filter { it.expiryDate.time < System.currentTimeMillis() }
-                else -> items
-            }
-
-            if (filteredItems.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
-                    Text(
-                        "No items in inventory.\nAdd some products to get started!",
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-            } else {
-                Column(modifier = Modifier.heightIn(max = 400.dp)) {
-                    LazyColumn {
-                        items(filteredItems) { item ->
-                            InventoryItemRow(item)
-                            Divider(modifier = Modifier.padding(horizontal = 8.dp))
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // ...
 }
 
 @Composable
 fun InventoryItemRow(item: PantryItem) {
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(item.name, style = MaterialTheme.typography.bodyLarge)
-            Text("${item.quantity} ${item.unit}", style = MaterialTheme.typography.bodySmall, color = Gray)
-        }
-        Text(
-            "Expires: ${dateFormat.format(item.expiryDate)}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (item.expiryDate.time < System.currentTimeMillis()) ErrorRed else MaterialTheme.colorScheme.onSurface
-        )
-    }
+    // ...
 }

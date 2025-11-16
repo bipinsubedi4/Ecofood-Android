@@ -1,14 +1,20 @@
 package com.bipin080.ecofood.ui.theme
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.bipin080.ecofood.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -27,9 +33,19 @@ fun LeftoverMagicScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Leftover Magic") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.app_logo),
+                            contentDescription = "EcoFood Logo",
+                            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp))
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Leftover Magic", style = MaterialTheme.typography.titleLarge)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.primary
                 )
             )
@@ -46,19 +62,19 @@ fun LeftoverMagicScreen() {
             Text(
                 "Transform your leftover cooked food into delicious new dishes with AI.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
             )
 
-            // Input Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("What leftovers do you have?", style = MaterialTheme.typography.titleLarge)
+                Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("What leftovers do you have?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     OutlinedTextField(value = leftoverFood, onValueChange = { leftoverFood = it }, label = { Text("Describe your leftover food") }, modifier = Modifier.fillMaxWidth())
 
-                    // Dropdowns for amount, cuisine, and meal
                     UnitDropdown(label = "Amount", selectedUnit = amount, onUnitChange = { amount = it }, units = listOf("Small amount", "Medium amount", "Large amount"))
                     UnitDropdown(label = "Cuisine", selectedUnit = cuisine, onUnitChange = { cuisine = it }, units = listOf("Any Cuisine", "Italian", "Mexican", "Asian", "Indian"))
                     UnitDropdown(label = "Meal", selectedUnit = meal, onUnitChange = { meal = it }, units = listOf("Any Meal", "Breakfast", "Lunch", "Dinner", "Snack"))
@@ -75,23 +91,24 @@ fun LeftoverMagicScreen() {
                                 isLoading = false
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(50.dp)
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Create Magic Recipe", style = MaterialTheme.typography.bodyLarge)
+                        Text("Create Magic Recipe", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            // Output Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Your Magic Recipe", style = MaterialTheme.typography.titleLarge)
+                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Your Magic Recipe", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
                     if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                        CircularProgressIndicator()
                     } else {
                         Text(
                             magicRecipe, 

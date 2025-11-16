@@ -16,4 +16,7 @@ interface MarketplaceItemDao {
 
     @Query("DELETE FROM marketplace_items")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM marketplace_items WHERE sellerUid = :userId")
+    fun getMyListings(userId: String): Flow<List<MarketplaceItem>>
 }

@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import java.util.Date
 import java.util.UUID
 
-@Database(entities = [MarketplaceItem::class], version = 3) // Incremented version
+@Database(entities = [MarketplaceItem::class], version = 4) // Incremented version
 @TypeConverters(MarketplaceConverters::class)
 abstract class MarketplaceDatabase : RoomDatabase() {
 

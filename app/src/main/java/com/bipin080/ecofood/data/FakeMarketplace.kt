@@ -15,8 +15,7 @@ fun fakeMarketplaceItems(): List<MarketplaceItem> {
             expiryDate = Date(calendar.timeInMillis + TimeUnit.DAYS.toMillis(5)),
             location = "Downtown",
             description = "Fresh organic apples, slightly overripe but perfect for baking.",
-            sellerName = "Sarah M.",
-            contact = "sarah.m@example.com"
+            sellerName = "Sarah M."
         ),
         MarketplaceItem(
             name = "Whole Grain Bread",
@@ -26,8 +25,7 @@ fun fakeMarketplaceItems(): List<MarketplaceItem> {
             expiryDate = Date(calendar.timeInMillis + TimeUnit.DAYS.toMillis(2)),
             location = "Suburbs",
             description = "A hearty loaf of whole grain bread, baked fresh this morning.",
-            sellerName = "John D.",
-            contact = "john.d@example.com"
+            sellerName = "John D."
         )
     )
 }
