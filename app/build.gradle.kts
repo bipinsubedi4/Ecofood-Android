@@ -1,5 +1,4 @@
-import org.gradle.internal.impldep.org.jsoup.nodes.Entities
-import java.lang.module.ModuleFinder.compose
+
 import java.util.Properties
 
 plugins {

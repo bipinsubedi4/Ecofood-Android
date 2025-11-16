@@ -14,28 +14,56 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
+import com.bipin080.ecofood.auth.AuthViewModel
 import com.bipin080.ecofood.auth.LoginScreen
 import com.bipin080.ecofood.auth.SignUpScreen
-import com.bipin080.ecofood.auth.AuthViewModel
+import com.bipin080.ecofood.ui.pantry.PantryScreen
 import com.bipin080.ecofood.ui.theme.*
 import com.bipin080.ecofood.viewmodel.MarketplaceViewModel
 import com.bipin080.ecofood.viewmodel.RecipeViewModel
 import com.google.firebase.auth.FirebaseAuth
 
-// --- Definitions ---
-sealed class Screen(val route: String, val label: String, val icon: @Composable () -> Unit) {
-    object Plan : Screen("plan", "Plan", { Icon(Icons.Default.CalendarMonth, contentDescription = null) })
-    object Pantry : Screen("pantry", "Pantry", { Icon(Icons.Default.Kitchen, contentDescription = null) })
-    object RecipeGenerator : Screen("recipe_generator", "AI Recipes", { Icon(Icons.Default.AutoAwesome, contentDescription = null) })
-    object LeftoverMagic : Screen("leftover_magic", "Leftover Magic", { Icon(Icons.Default.AutoFixHigh, contentDescription = null) })
-    object Marketplace : Screen("marketplace", "Marketplace", { Icon(Icons.Default.Storefront, contentDescription = null) })
-    object Profile : Screen("profile", "Profile", { Icon(Icons.Default.Person, contentDescription = null) })
+// ---------- Navigation definitions ----------
+
+sealed class Screen(
+    val route: String,
+    val label: String,
+    val icon: @Composable () -> Unit
+) {
+    object Plan : Screen("plan", "Plan", {
+        Icon(Icons.Default.CalendarMonth, contentDescription = null)
+    })
+
+    object Pantry : Screen("pantry", "Pantry", {
+        Icon(Icons.Default.Kitchen, contentDescription = null)
+    })
+
+    object RecipeGenerator : Screen("recipe_generator", "AI Recipes", {
+        Icon(Icons.Default.AutoAwesome, contentDescription = null)
+    })
+
+    object MyRecipes : Screen("my_recipes", "My Recipes", {
+        Icon(Icons.Default.MenuBook, contentDescription = null)
+    })
+
+    object LeftoverMagic : Screen("leftover_magic", "Leftover Magic", {
+        Icon(Icons.Default.AutoFixHigh, contentDescription = null)
+    })
+
+    object Marketplace : Screen("marketplace", "Marketplace", {
+        Icon(Icons.Default.Storefront, contentDescription = null)
+    })
+
+    object Profile : Screen("profile", "Profile", {
+        Icon(Icons.Default.Person, contentDescription = null)
+    })
 }
 
 val bottomNavItems = listOf(
     Screen.Plan,
     Screen.Pantry,
     Screen.RecipeGenerator,
+    Screen.MyRecipes,
     Screen.LeftoverMagic,
     Screen.Marketplace,
     Screen.Profile
@@ -46,7 +74,8 @@ object Graph {
     const val MAIN = "main_graph"
     const val RECIPE = "recipe_graph"
 }
-// --- End Definitions ---
+
+// ---------- Root composable ----------
 
 @Composable
 fun AppRoot() {
@@ -55,8 +84,13 @@ fun AppRoot() {
     val currentDestination = navBackStackEntry?.destination
 
     var startDestination by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(Unit) {
-        startDestination = if (FirebaseAuth.getInstance().currentUser != null) Graph.MAIN else Graph.AUTH
+        startDestination = if (FirebaseAuth.getInstance().currentUser != null) {
+            Graph.MAIN
+        } else {
+            Graph.AUTH
+        }
     }
 
     val showBottomBar = currentDestination?.hierarchy?.any { it.route == Graph.MAIN } == true
@@ -70,10 +104,14 @@ fun AppRoot() {
                             NavigationBarItem(
                                 icon = screen.icon,
                                 label = { Text(screen.label) },
-                                selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                                selected = currentDestination
+                                    ?.hierarchy
+                                    ?.any { it.route == screen.route } == true,
                                 onClick = {
                                     navController.navigate(screen.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
                                         launchSingleTop = true
                                         restoreState = true
                                     }
@@ -84,41 +122,93 @@ fun AppRoot() {
                 }
             }
         ) { innerPadding ->
-            NavHost(navController = navController, startDestination = startDestination!!, modifier = Modifier.padding(innerPadding)) {
-                
-                navigation(startDestination = "login", route = Graph.AUTH) {
+            NavHost(
+                navController = navController,
+                startDestination = startDestination!!,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+
+                // -------- AUTH GRAPH --------
+                navigation(
+                    startDestination = "login",
+                    route = Graph.AUTH
+                ) {
                     composable("login") {
                         val authViewModel: AuthViewModel = viewModel()
                         LoginScreen(
                             viewModel = authViewModel,
-                            onLoginSuccess = { navController.navigate(Graph.MAIN) { popUpTo(Graph.AUTH) { inclusive = true } } },
-                            onNavigateToSignUp = { navController.navigate("signup") }
+                            onLoginSuccess = {
+                                navController.navigate(Graph.MAIN) {
+                                    popUpTo(Graph.AUTH) { inclusive = true }
+                                }
+                            },
+                            onNavigateToSignUp = {
+                                navController.navigate("signup")
+                            }
                         )
                     }
                     composable("signup") {
                         val authViewModel: AuthViewModel = viewModel()
                         SignUpScreen(
                             viewModel = authViewModel,
-                            onSignUpSuccess = { navController.navigate(Graph.MAIN) { popUpTo(Graph.AUTH) { inclusive = true } } },
+                            onSignUpSuccess = {
+                                navController.navigate(Graph.MAIN) {
+                                    popUpTo(Graph.AUTH) { inclusive = true }
+                                }
+                            },
                             onNavigateToLogin = { navController.popBackStack() }
                         )
                     }
                 }
 
-                navigation(startDestination = Screen.Plan.route, route = Graph.MAIN) {
+                // -------- MAIN GRAPH --------
+                navigation(
+                    startDestination = Screen.Plan.route,
+                    route = Graph.MAIN
+                ) {
                     composable(Screen.Plan.route) { PlanScreen() }
+
                     composable(Screen.Pantry.route) { PantryScreen() }
+
                     composable(Screen.RecipeGenerator.route) {
+                        val mainGraphEntry =
+                            remember { navController.getBackStackEntry(Graph.MAIN) }
+                        val recipeViewModel: RecipeViewModel = viewModel(mainGraphEntry)
+
+                        CookScreen(
+                            onGenerateRecipe = { recipe ->
+                                recipeViewModel.setRecipe(recipe)
+                                navController.navigate(Graph.RECIPE)
+                            }
+                        )
+                    }
+
+                    composable(Screen.MyRecipes.route) {
                         val mainGraphEntry = remember { navController.getBackStackEntry(Graph.MAIN) }
                         val recipeViewModel: RecipeViewModel = viewModel(mainGraphEntry)
-                        CookScreen(onGenerateRecipe = { recipe ->
-                            recipeViewModel.setRecipe(recipe)
-                            navController.navigate(Graph.RECIPE)
-                        })
+
+                        // however you expose the saved recipes – adjust the property name if different
+                        val recipes by recipeViewModel.savedRecipes.collectAsState(initial = emptyList())
+
+                        MyRecipesScreen(
+                            recipes = recipes,
+                            onOpenRecipe = { recipe ->
+                                recipeViewModel.setRecipe(recipe)
+                                navController.navigate(Graph.RECIPE)
+                            },
+                            onDeleteRecipe = { recipe ->
+                                recipeViewModel.deleteRecipe(recipe)   // or whatever your delete function is called
+                            }
+                        )
                     }
-                    composable(Screen.LeftoverMagic.route) { LeftoverMagicScreen() }
+
+                    composable(Screen.LeftoverMagic.route) {
+                        LeftoverMagicScreen()
+                    }
+
                     composable(Screen.Marketplace.route) {
-                        val mainGraphEntry = remember { navController.getBackStackEntry(Graph.MAIN) }
+                        val mainGraphEntry =
+                            remember { navController.getBackStackEntry(Graph.MAIN) }
                         val marketplaceViewModel: MarketplaceViewModel = viewModel(mainGraphEntry)
                         MarketplaceScreen(
                             marketplaceViewModel = marketplaceViewModel,
@@ -126,17 +216,24 @@ fun AppRoot() {
                             onViewMyListings = { navController.navigate("my_listings") }
                         )
                     }
-                    composable(Screen.Profile.route) { ProfileScreen() }
+
+                    composable(Screen.Profile.route) {
+                        ProfileScreen()
+                    }
+
                     composable("add_marketplace_item") {
-                        val mainGraphEntry = remember { navController.getBackStackEntry(Graph.MAIN) }
+                        val mainGraphEntry =
+                            remember { navController.getBackStackEntry(Graph.MAIN) }
                         val marketplaceViewModel: MarketplaceViewModel = viewModel(mainGraphEntry)
                         AddMarketplaceItemScreen(
                             marketplaceViewModel = marketplaceViewModel,
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
+
                     composable("my_listings") {
-                        val mainGraphEntry = remember { navController.getBackStackEntry(Graph.MAIN) }
+                        val mainGraphEntry =
+                            remember { navController.getBackStackEntry(Graph.MAIN) }
                         val marketplaceViewModel: MarketplaceViewModel = viewModel(mainGraphEntry)
                         MyListingsScreen(
                             marketplaceViewModel = marketplaceViewModel,
@@ -145,9 +242,14 @@ fun AppRoot() {
                     }
                 }
 
-                navigation(startDestination = "recipe_details", route = Graph.RECIPE) {
+                // -------- RECIPE DETAILS GRAPH --------
+                navigation(
+                    startDestination = "recipe_details",
+                    route = Graph.RECIPE
+                ) {
                     composable("recipe_details") {
-                        val mainGraphEntry = remember { navController.getBackStackEntry(Graph.MAIN) }
+                        val mainGraphEntry =
+                            remember { navController.getBackStackEntry(Graph.MAIN) }
                         val recipeViewModel: RecipeViewModel = viewModel(mainGraphEntry)
                         RecipeScreen(
                             recipeViewModel = recipeViewModel,
