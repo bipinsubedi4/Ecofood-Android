@@ -11,9 +11,10 @@ import kotlinx.coroutines.launch
 
 class PantryViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val pantryDao = PantryDatabase.getDatabase(application).pantryItemDao()
+    private val dao = PantryDatabase.getDatabase(application).pantryItemDao()
 
-    val pantryItems = pantryDao.getAll()
+    // Live list of pantry items
+    val pantryItems = dao.getAll()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -22,7 +23,13 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
 
     fun addItem(item: PantryItem) {
         viewModelScope.launch {
-            pantryDao.insert(item)
+            dao.insert(item)
+        }
+    }
+
+    fun deleteItem(item: PantryItem) {
+        viewModelScope.launch {
+            dao.delete(item)
         }
     }
 }

@@ -341,7 +341,7 @@ private suspend fun askGeminiForFullRecipe(recipe: GeneratedRecipe): String {
     if (apiKey.isBlank()) return "Missing Gemini API key."
 
     val model = GenerativeModel(
-        modelName = "gemini-1.5-pro",
+        modelName = "gemini-2.0-flash",
         apiKey = apiKey
     )
 

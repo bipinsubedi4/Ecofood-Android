@@ -12,4 +12,5 @@ class EcoFoodApplication : Application() {
         val workRequest = PeriodicWorkRequestBuilder<NotificationWorker>(1, TimeUnit.DAYS).build()
         WorkManager.getInstance(this).enqueue(workRequest)
     }
+
 }

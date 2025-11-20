@@ -1,231 +1,259 @@
-package com.bipin080.ecofood.ui.pantry
+package com.bipin080.ecofood.ui.theme
 
+import android.app.DatePickerDialog
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bipin080.ecofood.data.PantryItem
-import com.bipin080.ecofood.data.PantryStatus
 import com.bipin080.ecofood.data.status
 import com.bipin080.ecofood.viewmodel.PantryViewModel
 import java.text.SimpleDateFormat
-import java.util.Locale
+import java.util.*
 
-enum class PantryFilter {
-    ALL,
-    EXPIRING_SOON,
-    EXPIRED
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantryScreen(
     pantryViewModel: PantryViewModel = viewModel(),
-    onGenerateRecipeClick: (List<PantryItem>) -> Unit = {}
 ) {
-    val items by pantryViewModel.pantryItems.collectAsState()
-    val (currentFilter, setFilter) = remember { mutableStateOf(PantryFilter.ALL) }
+    val pantryItems by pantryViewModel.pantryItems.collectAsState()
 
-    val filteredItems = when (currentFilter) {
-        PantryFilter.ALL -> items
-        PantryFilter.EXPIRING_SOON -> items.filter { it.status() == PantryStatus.EXPIRING_SOON }
-        PantryFilter.EXPIRED -> items.filter { it.status() == PantryStatus.EXPIRED }
+    var filter by remember { mutableStateOf("All") }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var deleteCandidate by remember { mutableStateOf<PantryItem?>(null) }
+
+    val formatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+
+    // Filtering
+    val today = Date()
+    val filteredItems = when (filter) {
+        "Expiring soon" -> pantryItems.filter { it.status() == com.bipin080.ecofood.data.PantryStatus.EXPIRING_SOON }
+        "Expired" -> pantryItems.filter { it.status() == com.bipin080.ecofood.data.PantryStatus.EXPIRED }
+        else -> pantryItems
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-
-        Text(
-            text = "Your Pantry",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "Track expiry dates and keep your food fresh. Use items before they go to waste.",
-            style = MaterialTheme.typography.bodyMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        PantryFilterRow(
-            currentFilter = currentFilter,
-            onFilterChange = setFilter
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (filteredItems.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = when (currentFilter) {
-                        PantryFilter.ALL -> "Your pantry is empty. Add some items to get started."
-                        PantryFilter.EXPIRING_SOON -> "No items are expiring soon."
-                        PantryFilter.EXPIRED -> "No expired items. Great job!"
-                    },
-                    style = MaterialTheme.typography.bodyMedium
-                )
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
+                Text("+")
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(filteredItems, key = { it.id }) { item ->
-                    PantryItemCard(item)
+        }
+    ) { paddingValues ->
+
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            Text("Your Pantry", style = MaterialTheme.typography.headlineSmall)
+
+            Text(
+                "Track expiry dates and keep your food fresh. Use items before they go to waste.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Filter Buttons
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                FilterChipButton("All", filter) { filter = it }
+                FilterChipButton("Expiring soon", filter) { filter = it }
+                FilterChipButton("Expired", filter) { filter = it }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(filteredItems) { item ->
+                    PantryItemCard(
+                        item = item,
+                        onDelete = { deleteCandidate = item }
+                    )
                 }
             }
         }
+    }
 
-        Spacer(modifier = Modifier.height(12.dp))
+    if (showAddDialog) {
+        AddPantryItemDialog(
+            onDismiss = { showAddDialog = false },
+            onAdd = { pantryViewModel.addItem(it); showAddDialog = false }
+        )
+    }
 
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = {
-                // For now, just send all *non-expired* items to the recipe generator.
-                val usableItems = items.filter { it.status() != PantryStatus.EXPIRED }
-                onGenerateRecipeClick(usableItems)
-            }
-        ) {
-            Text("Use pantry ingredients for recipes")
-        }
+    deleteCandidate?.let { item ->
+        ConfirmDeleteDialog(
+            itemName = item.name,
+            onConfirm = {
+                pantryViewModel.deleteItem(item)
+                deleteCandidate = null
+            },
+            onCancel = { deleteCandidate = null }
+        )
     }
 }
 
 @Composable
-private fun PantryFilterRow(
-    currentFilter: PantryFilter,
-    onFilterChange: (PantryFilter) -> Unit
+fun FilterChipButton(title: String, selected: String, onSelected: (String) -> Unit) {
+    AssistChip(
+        label = { Text(title) },
+        onClick = { onSelected(title) },
+        colors = AssistChipDefaults.assistChipColors(
+            containerColor = if (title == selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            else MaterialTheme.colorScheme.surfaceVariant
+        )
+    )
+}
+
+@Composable
+fun PantryItemCard(
+    item: PantryItem,
+    onDelete: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        AssistChip(
-            onClick = { onFilterChange(PantryFilter.ALL) },
-            label = { Text("All") },
-            colors = AssistChipDefaults.assistChipColors(
-                containerColor = if (currentFilter == PantryFilter.ALL)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.surface
-            )
-        )
+    val formatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
 
-        AssistChip(
-            onClick = { onFilterChange(PantryFilter.EXPIRING_SOON) },
-            label = { Text("Expiring soon") },
-            colors = AssistChipDefaults.assistChipColors(
-                containerColor = if (currentFilter == PantryFilter.EXPIRING_SOON)
-                    MaterialTheme.colorScheme.tertiaryContainer
-                else
-                    MaterialTheme.colorScheme.surface
-            )
-        )
-
-        AssistChip(
-            onClick = { onFilterChange(PantryFilter.EXPIRED) },
-            label = { Text("Expired") },
-            colors = AssistChipDefaults.assistChipColors(
-                containerColor = if (currentFilter == PantryFilter.EXPIRED)
-                    MaterialTheme.colorScheme.errorContainer
-                else
-                    MaterialTheme.colorScheme.surface
-            )
-        )
+    val bgColor = when (item.status()) {
+        com.bipin080.ecofood.data.PantryStatus.EXPIRED -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+        com.bipin080.ecofood.data.PantryStatus.EXPIRING_SOON -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
+        else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
     }
-}
-
-@Composable
-private fun PantryItemCard(item: PantryItem) {
-    val dateFormat = remember {
-        SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-    }
-    val status = item.status()
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when (status) {
-                PantryStatus.FRESH -> MaterialTheme.colorScheme.surface
-                PantryStatus.EXPIRING_SOON -> MaterialTheme.colorScheme.tertiaryContainer
-                PantryStatus.EXPIRED -> MaterialTheme.colorScheme.errorContainer
-            }
-        )
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Text(
-                    text = "${item.quantity} ${item.unit}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Text(item.name, fontWeight = FontWeight.Bold)
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Text("Purchased: ${formatter.format(item.purchaseDate)}")
+            Text("Expires: ${formatter.format(item.expiryDate)}")
 
-            Text(
-                text = "Purchased: ${dateFormat.format(item.purchaseDate)}",
-                style = MaterialTheme.typography.bodySmall
-            )
+            Spacer(Modifier.height(6.dp))
 
-            Text(
-                text = "Expires: ${dateFormat.format(item.expiryDate)}",
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Divider()
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = when (status) {
-                    PantryStatus.FRESH -> "Fresh"
-                    PantryStatus.EXPIRING_SOON -> "Use soon to avoid waste"
-                    PantryStatus.EXPIRED -> "Expired – consider discarding"
-                },
-                style = MaterialTheme.typography.labelMedium
-            )
+            val statusText = when (item.status()) {
+                com.bipin080.ecofood.data.PantryStatus.EXPIRED -> "Expired – consider discarding"
+                com.bipin080.ecofood.data.PantryStatus.EXPIRING_SOON -> "Expiring soon"
+                else -> "Fresh"
+            }
+            Text(statusText, fontWeight = FontWeight.Medium)
         }
     }
+}
+
+@Composable
+fun ConfirmDeleteDialog(
+    itemName: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { },
+        title = { Text("Remove Item") },
+        text = { Text("Are you sure you want to remove \"$itemName\" from the pantry?") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Yes") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) { Text("No") }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddPantryItemDialog(
+    onDismiss: () -> Unit,
+    onAdd: (PantryItem) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var quantity by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("g") }
+    var purchaseDate by remember { mutableStateOf(Date()) }
+    var expiryDate by remember { mutableStateOf(Date()) }
+
+    val context = LocalContext.current
+
+    fun pickDate(onPicked: (Date) -> Unit) {
+        val cal = Calendar.getInstance()
+        DatePickerDialog(
+            context,
+            { _, y, m, d ->
+                val c = Calendar.getInstance()
+                c.set(y, m, d)
+                onPicked(c.time)
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Pantry Item") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") })
+
+                OutlinedTextField(
+                    value = quantity,
+                    onValueChange = { quantity = it },
+                    label = { Text("Quantity") }
+                )
+
+                OutlinedTextField(
+                    value = unit,
+                    onValueChange = { unit = it },
+                    label = { Text("Unit (g, ml, litre, etc.)") }
+                )
+
+                Button(onClick = { pickDate { purchaseDate = it } }) {
+                    Text("Select Purchase Date")
+                }
+
+                Button(onClick = { pickDate { expiryDate = it } }) {
+                    Text("Select Expiry Date")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onAdd(
+                    PantryItem(
+                        name = name,
+                        quantity = quantity.toIntOrNull() ?: 1,
+                        unit = unit,
+                        purchaseDate = purchaseDate,
+                        expiryDate = expiryDate
+                    )
+                )
+            }) { Text("Add") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
