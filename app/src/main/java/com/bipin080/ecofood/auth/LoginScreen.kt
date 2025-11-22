@@ -14,60 +14,74 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit
 ) {
+    val loginState by viewModel.loginState.collectAsState()
+
+    LaunchedEffect(loginState) {
+        if (loginState is LoginState.Success) onLoginSuccess()
+    }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    val isFormValid by remember(email, password) {
-        mutableStateOf(email.isNotBlank() && password.isNotBlank())
-    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Welcome Back!", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(32.dp))
+
+        Text("EcoFood Login", style = MaterialTheme.typography.headlineMedium)
+
+        Spacer(Modifier.height(24.dp))
 
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
             label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth(),
-            isError = email.isBlank()
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(16.dp))
+
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation(),
-            isError = password.isBlank()
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
         )
-        
-        errorMessage?.let {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(it, color = MaterialTheme.colorScheme.error)
-        }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(Modifier.height(16.dp))
+
         Button(
             onClick = {
-                // This is where you would call your ViewModel's login function
-                // For now, we'll just navigate on success
-                onLoginSuccess() 
+                viewModel.login(email.trim(), password.trim())
             },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = isFormValid
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Login")
+            if (loginState is LoginState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text("Log In")
+            }
         }
+
+        if (loginState is LoginState.Error) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = (loginState as LoginState.Error).message,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         TextButton(onClick = onNavigateToSignUp) {
-            Text("Don't have an account? Sign up")
+            Text("Create a new account")
         }
     }
 }

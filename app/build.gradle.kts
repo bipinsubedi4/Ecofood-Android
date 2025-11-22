@@ -98,4 +98,6 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx") // Added Firestore
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
 }
