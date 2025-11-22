@@ -1,11 +1,13 @@
 package com.bipin080.ecofood.marketplace
 
 import androidx.lifecycle.ViewModel
+import com.bipin080.ecofood.data.MarketplaceItem
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.UUID
 
 data class MarketplaceUiState(
     val items: List<MarketplaceItem> = emptyList(),
@@ -31,69 +33,68 @@ class MarketplaceViewModel(
         listenerRegistration?.remove()
 
         listenerRegistration = firestore.collection("marketplace")
-            .orderBy("timestamp")
+            .orderBy("postedAt")
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
                     _uiState.value = MarketplaceUiState(
-                        items = emptyList(),
                         isLoading = false,
-                        error = e.message ?: "Failed to load marketplace"
+                        error = e.message
                     )
                     return@addSnapshotListener
                 }
 
-                val list = snapshot?.documents
-                    ?.mapNotNull { doc ->
-                        doc.toObject(MarketplaceItem::class.java)
-                            ?.copy(id = doc.id)
-                    }
-                    .orEmpty()
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(MarketplaceItem::class.java)
+                }.orEmpty()
 
                 _uiState.value = MarketplaceUiState(
                     items = list,
-                    isLoading = false,
-                    error = null
+                    isLoading = false
                 )
             }
     }
 
+    // FIXED FUNCTION — matches MarketplaceItem data class
     fun addItem(
-        title: String,
+        name: String,
+        quantity: Int,
+        unit: String,
+        price: Double,
+        expiryDate: String?,
+        location: String,
         description: String,
-        quantity: String,
-        expiryDate: String,
-        onResult: (Boolean, String?) -> Unit
+        imageUrl: String? = null,
+        onResult: (Boolean, String?) -> Unit = { _, _ -> }
     ) {
         val user = auth.currentUser
         if (user == null) {
-            onResult(false, "You must be logged in to post")
+            onResult(false, "You must be logged in")
             return
         }
 
-        val sellerName = user.displayName ?: user.email ?: "Unknown"
-
         val item = MarketplaceItem(
-            title = title,
-            description = description,
+            id = UUID.randomUUID(),
+            name = name,
             quantity = quantity,
+            unit = unit,
+            price = price,
             expiryDate = expiryDate,
+            location = location,
+            description = description,
+            imageUrl = imageUrl,
             sellerUid = user.uid,
-            sellerName = sellerName,
-            contactEmail = user.email ?: ""
+            sellerName = user.displayName ?: user.email ?: "Unknown"
         )
 
         firestore.collection("marketplace")
-            .add(item)
-            .addOnSuccessListener {
-                onResult(true, null)
-            }
-            .addOnFailureListener { e ->
-                onResult(false, e.message ?: "Failed to post item")
-            }
+            .document(item.id.toString())
+            .set(item)
+            .addOnSuccessListener { onResult(true, null) }
+            .addOnFailureListener { e -> onResult(false, e.message) }
     }
 
     override fun onCleared() {
-        super.onCleared()
         listenerRegistration?.remove()
+        super.onCleared()
     }
 }

@@ -11,10 +11,10 @@ import java.util.UUID
 data class MarketplaceItem(
     @PrimaryKey val id: UUID = UUID.randomUUID(),
     val name: String = "",
-    val quantity: String = "",
+    val quantity: Int = 0,
     val unit: String = "",
     val price: Double = 0.0,
-    val expiryDate: Date? = null,
+    val expiryDate: String? = null,
     val location: String = "",
     val description: String = "",
     val imageUrl: String? = null,

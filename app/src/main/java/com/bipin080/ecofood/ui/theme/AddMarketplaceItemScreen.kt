@@ -1,30 +1,85 @@
 package com.bipin080.ecofood.ui.theme
 
+import android.R
+import android.app.DatePickerDialog
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SmallTopAppBar
+import androidx.compose.material3.Text
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.bipin080.ecofood.data.MarketplaceItem
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bipin080.ecofood.viewmodel.MarketplaceViewModel
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Locale
+import com.bipin080.ecofood.data.MarketplaceItem
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMarketplaceItemScreen(
-    marketplaceViewModel: MarketplaceViewModel,
+    marketplaceViewModel: MarketplaceViewModel = viewModel(),
     onNavigateBack: () -> Unit
 ) {
+    var name by remember { mutableStateOf("") }
+    var quantity by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("pieces") }
+    var price by remember { mutableStateOf("") }
+    var expiryDate by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    var showErrors by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+
+    /** DATE PICKER FUNCTION **/
+    fun pickDate() {
+        val today = Calendar.getInstance()
+        val datePicker = DatePickerDialog(
+            context,
+            { _, y, m, d ->
+                val selected = Calendar.getInstance()
+                selected.set(y, m, d)
+
+                // BLOCK old dates
+                if (selected.before(today)) {
+                    Toast.makeText(context, "Expiry date cannot be in the past", Toast.LENGTH_SHORT).show()
+                    return@DatePickerDialog
+                }
+
+                val format = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+                expiryDate = format.format(selected.time)
+            },
+            today.get(Calendar.YEAR),
+            today.get(Calendar.MONTH),
+            today.get(Calendar.DAY_OF_MONTH)
+        )
+        datePicker.datePicker.minDate = today.timeInMillis
+        datePicker.show()
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
+            SmallTopAppBar(
                 title = { Text("Share Your Surplus Food") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -33,99 +88,158 @@ fun AddMarketplaceItemScreen(
                 }
             )
         }
-    ) { paddingValues ->
-        ShareFoodForm(
-            modifier = Modifier.padding(paddingValues),
-            onShareFood = { newItem ->
-                marketplaceViewModel.addItem(newItem)
-                onNavigateBack()
-            }
-        )
-    }
-}
+    ) { padding ->
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ShareFoodForm(modifier: Modifier = Modifier, onShareFood: (MarketplaceItem) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var quantity by remember { mutableStateOf("") }
-    var unit by remember { mutableStateOf("pieces") }
-    var price by remember { mutableStateOf("") }
-    var expiryDate by remember { mutableStateOf<Date?>(null) }
-    var location by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var isUnitDropdownExpanded by remember { mutableStateOf(false) }
-    val units = listOf("pieces", "litre", "kg", "g", "ml")
-    val showDatePicker = remember { mutableStateOf(false) }
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
 
-    val isFormValid by remember(name, quantity, price, expiryDate, location, description) {
-        mutableStateOf(
-            name.isNotBlank() && quantity.isNotBlank() && price.isNotBlank() &&
-            expiryDate != null && location.isNotBlank() && description.isNotBlank()
-        )
-    }
+            // PRODUCT NAME
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Product name") },
+                isError = showErrors && name.isBlank(),
+                modifier = Modifier.fillMaxWidth()
+            )
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Product name") }, modifier = Modifier.fillMaxWidth(), isError = name.isBlank())
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = quantity, onValueChange = { quantity = it }, label = { Text("Quantity") }, modifier = Modifier.weight(1f), isError = quantity.isBlank())
-            ExposedDropdownMenuBox(expanded = isUnitDropdownExpanded, onExpandedChange = { isUnitDropdownExpanded = !isUnitDropdownExpanded }, modifier = Modifier.weight(1f)) {
-                OutlinedTextField(value = unit, onValueChange = {}, label = { Text("Unit") }, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isUnitDropdownExpanded) }, modifier = Modifier.menuAnchor())
-                ExposedDropdownMenu(expanded = isUnitDropdownExpanded, onDismissRequest = { isUnitDropdownExpanded = false }) {
-                    units.forEach { DropdownMenuItem(text = { Text(it) }, onClick = { unit = it; isUnitDropdownExpanded = false }) }
-                }
-            }
-        }
-        OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Price ($)") }, modifier = Modifier.fillMaxWidth(), isError = price.isBlank())
-        OutlinedTextField(value = expiryDate?.let { dateFormat.format(it) } ?: "", onValueChange = {}, label = { Text("Expiry Date") }, readOnly = true, trailingIcon = { IconButton(onClick = { showDatePicker.value = true }) { Icon(Icons.Default.CalendarToday, contentDescription = null) } }, modifier = Modifier.fillMaxWidth(), isError = expiryDate == null)
-        OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location/Area") }, modifier = Modifier.fillMaxWidth(), isError = location.isBlank())
-        OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description (condition, reason for sharing, etc.)") }, modifier = Modifier.fillMaxWidth(), maxLines = 4, isError = description.isBlank())
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = {
-                val newItem = MarketplaceItem(
-                    name = name,
-                    quantity = quantity,
-                    unit = unit,
-                    price = price.toDoubleOrNull() ?: 0.0,
-                    expiryDate = expiryDate!!,
-                    location = location,
-                    description = description
+            // QUANTITY + UNIT ROW
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = quantity,
+                    onValueChange = { quantity = it },
+                    label = { Text("Quantity") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = showErrors && quantity.isBlank(),
+                    modifier = Modifier.weight(1f)
                 )
-                onShareFood(newItem)
-            }, 
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            enabled = isFormValid
-        ) {
-            Text("Share Food", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-        }
-    }
 
-    if (showDatePicker.value) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker.value = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { expiryDate = Date(it) }
-                        showDatePicker.value = false
-                    },
-                    enabled = (datePickerState.selectedDateMillis ?: 0) > System.currentTimeMillis()
-                ) { Text("OK") }
-            },
-            dismissButton = { TextButton(onClick = { showDatePicker.value = false }) { Text("Cancel") } }
-        ) {
-            DatePicker(state = datePickerState)
+                /** UNIT DROPDOWN **/
+                var unitExpanded by remember { mutableStateOf(false) }
+                val unitOptions = listOf("pieces", "kg", "g", "ml", "L")
+
+                ExposedDropdownMenuBox(
+                    expanded = unitExpanded,
+                    onExpandedChange = { unitExpanded = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = unit,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Unit") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded)
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = unitExpanded,
+                        onDismissRequest = { unitExpanded = false }
+                    ) {
+                        unitOptions.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    unit = option
+                                    unitExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+            }
+
+            // PRICE
+            OutlinedTextField(
+                value = price,
+                onValueChange = { price = it },
+                label = { Text("Price ($)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = showErrors && price.isBlank(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // EXPIRY DATE
+            OutlinedTextField(
+                value = expiryDate,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Expiry Date") },
+                trailingIcon = {
+                    IconButton(onClick = { pickDate() }) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = "Pick Date")
+                    }
+                },
+                isError = showErrors && expiryDate.isBlank(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // LOCATION
+            OutlinedTextField(
+                value = location,
+                onValueChange = { location = it },
+                label = { Text("Location/Area") },
+                isError = showErrors && location.isBlank(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // DESCRIPTION
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Description (condition, reason for sharing, etc.)") },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 3
+            )
+
+            // BUTTON
+            Button(
+                onClick = {
+                    if (name.isBlank() || quantity.isBlank() || price.isBlank() ||
+                        expiryDate.isBlank() || location.isBlank()
+                    ) {
+                        showErrors = true
+                        return@Button
+                    }
+
+                    // SAFE PARSING
+                    val qty = quantity.toIntOrNull() ?: 0
+                    val priceVal = price.toDoubleOrNull() ?: 0.0
+
+                    val expiry = expiryDate
+                    val item = MarketplaceItem(
+                        name = name,
+                        quantity = qty,
+                        unit = unit,
+                        price = priceVal,
+                        expiryDate = expiry,
+                        location = location,
+                        description = description
+                    )
+
+                    marketplaceViewModel.addItem(item)
+
+
+                    onNavigateBack()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Share Food")
+            }
         }
     }
 }

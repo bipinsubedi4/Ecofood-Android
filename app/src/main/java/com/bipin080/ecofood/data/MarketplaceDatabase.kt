@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 
 @Database(
     entities = [MarketplaceItem::class],
-    version = 5,  // <-- bump version to avoid migration crash
+    version = 6,  // <-- bump version to avoid migration crash
     exportSchema = false
 )
 @TypeConverters(MarketplaceConverters::class)
