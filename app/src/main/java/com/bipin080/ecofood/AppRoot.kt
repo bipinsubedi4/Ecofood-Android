@@ -146,10 +146,14 @@ fun AppRoot() {
                             recipes = recipes,
                             onOpenRecipe = {
                                 recipeViewModel.setRecipe(it)
-                                navController.navigate(Graph.RECIPE)
+                                navController.navigate(route = Graph.RECIPE)
                             },
-                            onDeleteRecipe = { recipeViewModel.deleteRecipe(it) }
+                            onDeleteRecipe = {
+                                recipeViewModel.deleteRecipe(recipe = it)
+                            },
+                            onNavigateBack = { navController.popBackStack() }
                         )
+
                     }
 
                     composable(Screen.LeftoverMagic.route) { LeftoverMagicScreen() }
@@ -199,7 +203,11 @@ fun AppRoot() {
                     composable("recipe_details") {
                         val mainEntry = navController.getBackStackEntry(Graph.MAIN)
                         val vm: RecipeViewModel = viewModel(mainEntry)
-                        RecipeScreen(vm) { navController.popBackStack() }
+                        RecipeScreen(
+                            recipeViewModel = vm,
+                            onNavigateUp = { navController.popBackStack() }
+                        )
+
                     }
                 }
             }

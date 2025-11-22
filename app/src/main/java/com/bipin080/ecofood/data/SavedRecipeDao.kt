@@ -21,4 +21,8 @@ interface SavedRecipeDao {
 
     @Query("DELETE FROM saved_recipes")
     suspend fun clear()
+
+    // 🔥 NEW: delete by title + description so we can delete from GeneratedRecipe
+    @Query("DELETE FROM saved_recipes WHERE title = :title AND description = :description")
+    suspend fun deleteByTitleAndDescription(title: String, description: String)
 }
