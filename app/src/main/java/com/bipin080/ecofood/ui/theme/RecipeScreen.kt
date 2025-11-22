@@ -4,8 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,12 +34,9 @@ fun RecipeScreen(
     recipeViewModel: RecipeViewModel = viewModel(),
     onNavigateUp: () -> Unit
 ) {
-    // Read currently selected recipe
-    val recipeState = recipeViewModel.currentRecipe.collectAsState()
-    val recipe = recipeState.value
+    val recipe = recipeViewModel.currentRecipe.collectAsState().value
 
     if (recipe == null) {
-        // Fallback if user somehow lands here without a recipe
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -85,6 +82,7 @@ fun RecipeScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -94,7 +92,7 @@ fun RecipeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ─── Title + description ──────────────────────────────────────
+            // ─── Summary: title + description ─────────────────────────────
             Text(
                 text = recipe.title,
                 style = MaterialTheme.typography.headlineSmall,
@@ -105,37 +103,58 @@ fun RecipeScreen(
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            // ─── Summary chips (time, servings, calories, waste) ─────────
+            // ─── Summary chips (time, servings, calories, eco tips) ───────
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
             ) {
                 SummaryChip("Time", recipe.cookingTime)
                 SummaryChip("Servings", recipe.servings)
                 SummaryChip("Calories", recipe.calories)
-                SummaryChip("Waste ↓", recipe.wasteReduction)
+            }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Eco Tips",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = recipe.wasteReduction,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
 
-            // ─── See full recipe button ──────────────────────────────────
+
+
+            // ─── See full recipe button ───────────────────────────────────
             Button(
                 onClick = {
                     if (fullRecipeText == null && !isFullRecipeLoading) {
-                        // First time: call Gemini
                         isFullRecipeLoading = true
                         fullRecipeError = null
                         scope.launch {
                             try {
                                 val text = askGeminiForFullRecipe(recipe)
-                                fullRecipeText = text.ifBlank { "Sorry, the AI returned an empty recipe." }
+                                fullRecipeText = text.ifBlank { "AI returned an empty recipe." }
                                 showFullRecipe = true
                             } catch (e: Exception) {
-                                fullRecipeError = "Sorry, we couldn't load the full recipe. Please try again."
+                                fullRecipeError = "Could not load full recipe."
                             } finally {
                                 isFullRecipeLoading = false
                             }
                         }
                     } else {
-                        // Already loaded: just toggle visibility
                         showFullRecipe = !showFullRecipe
                     }
                 },
@@ -151,7 +170,7 @@ fun RecipeScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Loading full recipe…")
+                    Text("Loading…")
                 } else {
                     Text(if (showFullRecipe) "Hide full recipe" else "See full recipe")
                 }
@@ -160,17 +179,19 @@ fun RecipeScreen(
             if (fullRecipeError != null) {
                 Text(
                     text = fullRecipeError ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
 
+            // ─── Full Recipe Section ──────────────────────────────────────
             AnimatedVisibility(
                 visible = showFullRecipe && fullRecipeText != null,
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
-                if (fullRecipeText != null) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -179,50 +200,49 @@ fun RecipeScreen(
                         )
                     ) {
                         Text(
-                            text = fullRecipeText!!,
+                            text = fullRecipeText ?: "",
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(16.dp)
                         )
                     }
-                }
-            }
 
-            // ─── Ingredients section ──────────────────────────────────────
-            Text(
-                text = "Ingredients",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+                    // Ingredients list
+                    Text(
+                        text = "Ingredients",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                recipe.ingredients.forEach { ingredient ->
-                    IngredientRow(ingredient)
-                }
-            }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        recipe.ingredients.forEach { ingredient ->
+                            IngredientRow(ingredient)
+                        }
+                    }
 
-            // ─── Shopping list section (not in pantry) ───────────────────
-            val shoppingList = recipe.ingredients.filter { !it.inPantry }
-            if (shoppingList.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Shopping list (not in your pantry)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    shoppingList.forEach { ingredient ->
-                        ShoppingRow(ingredient)
+                    // Shopping list
+                    val shoppingList = recipe.ingredients.filter { !it.inPantry }
+
+                    if (shoppingList.isNotEmpty()) {
+                        Text(
+                            text = "Shopping List",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            shoppingList.forEach { ingredient ->
+                                ShoppingRow(ingredient)
+                            }
+                        }
                     }
                 }
             }
 
-            // ─── Save to My Recipes button ───────────────────────────────
-            Spacer(modifier = Modifier.height(16.dp))
+            // ─── Save Button ──────────────────────────────────────────────
             OutlinedButton(
                 onClick = {
                     recipeViewModel.saveRecipe(recipe)
                     scope.launch {
-                        snackbarHostState.showSnackbar("Recipe saved to My Recipes")
+                        snackbarHostState.showSnackbar("Recipe saved")
                     }
                 },
                 modifier = Modifier
@@ -243,14 +263,11 @@ private fun SummaryChip(label: String, value: String) {
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
             .padding(vertical = 10.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall
-        )
+        Text(text = label, style = MaterialTheme.typography.labelSmall)
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
@@ -260,7 +277,6 @@ private fun SummaryChip(label: String, value: String) {
         )
     }
 }
-
 
 @Composable
 private fun IngredientRow(ingredient: RecipeIngredient) {
@@ -277,24 +293,12 @@ private fun IngredientRow(ingredient: RecipeIngredient) {
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = ingredient.quantity,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Text(text = ingredient.quantity, style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AssistChip(
-                    onClick = {},
-                    label = { Text(if (ingredient.inPantry) "In your pantry" else "Buy") }
-                )
-                ingredient.tags.forEach { tag ->
-                    AssistChip(onClick = {}, label = { Text(tag) })
-                }
-            }
+            AssistChip(
+                onClick = {},
+                label = { Text(if (ingredient.inPantry) "In your pantry" else "Buy") }
+            )
         }
     }
 }
@@ -302,40 +306,54 @@ private fun IngredientRow(ingredient: RecipeIngredient) {
 @Composable
 private fun ShoppingRow(ingredient: RecipeIngredient) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.background
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = ingredient.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = ingredient.quantity,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                text = "Buy",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
+
+            AssistChip(
+                onClick = { /* maybe add functionality later */ },
+                label = { Text("Buy") },
+                shape = RoundedCornerShape(12.dp),
+                colors = AssistChipDefaults.assistChipColors(
+                    labelColor = MaterialTheme.colorScheme.primary,
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                )
             )
         }
     }
 }
 
-/**
- * Calls Gemini to generate a detailed full recipe text based on the structured recipe data.
- */
+
 private suspend fun askGeminiForFullRecipe(recipe: GeneratedRecipe): String {
     val apiKey = BuildConfig.GEMINI_API_KEY
     if (apiKey.isBlank()) return "Missing Gemini API key."
@@ -350,26 +368,24 @@ private suspend fun askGeminiForFullRecipe(recipe: GeneratedRecipe): String {
     }
 
     val prompt = """
-        You are an expert sustainable chef. Using the following structured recipe,
-        write a clear, step-by-step recipe that a beginner can follow.
+        You are an expert sustainable chef.
+        Expand this into a detailed full recipe:
 
         Title: ${recipe.title}
         Description: ${recipe.description}
         Servings: ${recipe.servings}
         Cooking time: ${recipe.cookingTime}
-        Waste reduction: ${recipe.wasteReduction}
-        Calories per serving: ${recipe.calories}
 
         Ingredients:
         $ingredientsText
 
         Requirements:
-        - Start with a short introductory paragraph.
-        - Then list ingredients again in bullet points.
-        - Then give numbered method steps.
-        - Add 1–2 eco-friendly tips at the end (for reducing food waste / saving energy).
+        - Start with a short introduction.
+        - List all ingredients again.
+        - Provide numbered cooking steps.
+        - Add eco-friendly cooking/waste-reduction tips.
     """.trimIndent()
 
     val response = model.generateContent(prompt)
-    return response.text ?: "Could not generate recipe text."
+    return response.text ?: "Could not generate full recipe."
 }

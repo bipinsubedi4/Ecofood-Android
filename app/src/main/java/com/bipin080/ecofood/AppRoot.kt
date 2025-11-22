@@ -126,11 +126,15 @@ fun AppRoot() {
                     composable(Screen.RecipeGenerator.route) {
                         val mainEntry = remember { navController.getBackStackEntry(Graph.MAIN) }
                         val viewModel: RecipeViewModel = viewModel(mainEntry)
-                        CookScreen { recipe ->
-                            viewModel.setRecipe(recipe)
-                            navController.navigate(Graph.RECIPE)
-                        }
+
+                        CookScreen(
+                            onGenerateRecipe = { recipe ->
+                                viewModel.setRecipe(recipe)
+                                navController.navigate(Graph.RECIPE)
+                            }
+                        )
                     }
+
 
                     composable(Screen.MyRecipes.route) {
                         val mainEntry = remember { navController.getBackStackEntry(Graph.MAIN) }
