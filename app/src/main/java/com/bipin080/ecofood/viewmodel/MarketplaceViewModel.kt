@@ -57,5 +57,7 @@ class MarketplaceViewModel(
         viewModelScope.launch {
             dao.delete(item)
         }
-    }
+
+        }
+
 }

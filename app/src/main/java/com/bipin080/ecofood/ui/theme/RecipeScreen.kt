@@ -6,10 +6,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -20,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bipin080.ecofood.BuildConfig
 import com.bipin080.ecofood.data.GeneratedRecipe
 import com.bipin080.ecofood.data.RecipeIngredient
@@ -31,36 +30,10 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeScreen(
-    recipeViewModel: RecipeViewModel = viewModel(),
+    recipeViewModel: RecipeViewModel,
     onNavigateUp: () -> Unit
 ) {
     val recipe = recipeViewModel.currentRecipe.collectAsState().value
-
-    if (recipe == null) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Recipe Details") },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateUp) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
-                    }
-                )
-            }
-        ) { padding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No recipe available. Please generate a recipe first.")
-            }
-        }
-        return
-    }
-
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -80,180 +53,212 @@ fun RecipeScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
+        }
+    ) { padding ->
 
-        Column(
+        if (recipe == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No recipe available. Please generate a recipe first.")
+            }
+            return@Scaffold
+        }
+
+        //-------------------------------------------------------
+        // 🔥 REPLACED Column + verticalScroll WITH LazyColumn
+        //-------------------------------------------------------
+        LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
+                .fillMaxHeight()
+                .fillMaxWidth()
+                .padding(padding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ─── Summary: title + description ─────────────────────────────
-            Text(
-                text = recipe.title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = recipe.description,
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            // ─── Summary chips (time, servings, calories, eco tips) ───────
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-            ) {
-                SummaryChip("Time", recipe.cookingTime)
-                SummaryChip("Servings", recipe.servings)
-                SummaryChip("Calories", recipe.calories)
-            }
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+            // TITLE
+            item {
+                Text(
+                    text = recipe.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
                 )
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Eco Tips",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = recipe.wasteReduction,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+            }
+
+            // DESCRIPTION
+            item {
+                Text(
+                    text = recipe.description,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            // SUMMARY CHIP ROW
+            item {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                ) {
+                    SummaryChip("Time", recipe.cookingTime)
+                    SummaryChip("Servings", recipe.servings)
+                    SummaryChip("Calories", recipe.calories)
                 }
             }
 
-
-
-            // ─── See full recipe button ───────────────────────────────────
-            Button(
-                onClick = {
-                    if (fullRecipeText == null && !isFullRecipeLoading) {
-                        isFullRecipeLoading = true
-                        fullRecipeError = null
-                        scope.launch {
-                            try {
-                                val text = askGeminiForFullRecipe(recipe)
-                                fullRecipeText = text.ifBlank { "AI returned an empty recipe." }
-                                showFullRecipe = true
-                            } catch (e: Exception) {
-                                fullRecipeError = "Could not load full recipe."
-                            } finally {
-                                isFullRecipeLoading = false
-                            }
-                        }
-                    } else {
-                        showFullRecipe = !showFullRecipe
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                if (isFullRecipeLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
+            // ECO TIPS
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Loading…")
-                } else {
-                    Text(if (showFullRecipe) "Hide full recipe" else "See full recipe")
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "Eco Tips",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(recipe.wasteReduction)
+                    }
+                }
+            }
+
+            // SHOW FULL RECIPE BUTTON
+            item {
+                Button(
+                    onClick = {
+                        if (fullRecipeText == null && !isFullRecipeLoading) {
+                            isFullRecipeLoading = true
+                            fullRecipeError = null
+                            scope.launch {
+                                try {
+                                    val text = askGeminiForFullRecipe(recipe)
+                                    fullRecipeText =
+                                        text.ifBlank { "AI returned an empty recipe." }
+                                    showFullRecipe = true
+                                } catch (e: Exception) {
+                                    fullRecipeError = "Could not load full recipe."
+                                } finally {
+                                    isFullRecipeLoading = false
+                                }
+                            }
+                        } else {
+                            showFullRecipe = !showFullRecipe
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    if (isFullRecipeLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Loading…")
+                    } else {
+                        Text(if (showFullRecipe) "Hide full recipe" else "See full recipe")
+                    }
                 }
             }
 
             if (fullRecipeError != null) {
-                Text(
-                    text = fullRecipeError ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                item {
+                    Text(
+                        fullRecipeError ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
 
-            // ─── Full Recipe Section ──────────────────────────────────────
-            AnimatedVisibility(
-                visible = showFullRecipe && fullRecipeText != null,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+            // FULL RECIPE SECTION
+            if (showFullRecipe && fullRecipeText != null) {
+                item {
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(),
+                        exit = fadeOut()
                     ) {
-                        Text(
-                            text = fullRecipeText ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
-                    // Ingredients list
-                    Text(
-                        text = "Ingredients",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                            // FULL RECIPE TEXT
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Text(
+                                    fullRecipeText ?: "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        recipe.ingredients.forEach { ingredient ->
-                            IngredientRow(ingredient)
-                        }
-                    }
+                            // INGREDIENTS HEADER
+                            Text(
+                                "Ingredients",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
 
-                    // Shopping list
-                    val shoppingList = recipe.ingredients.filter { !it.inPantry }
+                            // INGREDIENTS LIST
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                recipe.ingredients.forEach { ingredient ->
+                                    IngredientRow(ingredient)
+                                }
+                            }
 
-                    if (shoppingList.isNotEmpty()) {
-                        Text(
-                            text = "Shopping List",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            shoppingList.forEach { ingredient ->
-                                ShoppingRow(ingredient)
+                            // SHOPPING LIST
+                            val shoppingList = recipe.ingredients.filter { !it.inPantry }
+                            if (shoppingList.isNotEmpty()) {
+                                Text(
+                                    "Shopping List",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    shoppingList.forEach { ShoppingRow(it) }
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // ─── Save Button ──────────────────────────────────────────────
-            OutlinedButton(
-                onClick = {
-                    recipeViewModel.saveRecipe(recipe)
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Recipe saved")
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text("Save to My Recipes")
+            // SAVE BUTTON
+            item {
+                OutlinedButton(
+                    onClick = {
+                        recipeViewModel.saveRecipe(recipe)
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Recipe saved")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Save to My Recipes")
+                }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -341,7 +346,7 @@ private fun ShoppingRow(ingredient: RecipeIngredient) {
             }
 
             AssistChip(
-                onClick = { /* maybe add functionality later */ },
+                onClick = { },
                 label = { Text("Buy") },
                 shape = RoundedCornerShape(12.dp),
                 colors = AssistChipDefaults.assistChipColors(

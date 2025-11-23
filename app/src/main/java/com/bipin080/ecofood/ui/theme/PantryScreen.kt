@@ -1,5 +1,6 @@
 package com.bipin080.ecofood.ui.theme
 
+import android.R.attr.onClick
 import android.app.DatePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -8,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -23,6 +26,7 @@ import com.bipin080.ecofood.data.status
 import com.bipin080.ecofood.viewmodel.PantryViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +52,9 @@ fun PantryScreen(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
-                Text("+")
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Item")
             }
         }
     ) { paddingValues ->
@@ -260,7 +266,8 @@ fun AddPantryItemDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Name") },
-                    isError = nameError
+                    isError = nameError,
+                    modifier=Modifier.testTag("name_field")
                 )
                 if (nameError) ValidationText("Name is required")
 
@@ -269,12 +276,15 @@ fun AddPantryItemDialog(
                     value = quantity,
                     onValueChange = { quantity = it },
                     label = { Text("Quantity") },
-                    isError = quantityError
+                    isError = quantityError,
+                    modifier = Modifier.testTag("quantity_field")
                 )
                 if (quantityError) ValidationText("Enter a valid number")
 
                 // ---------- UNIT DROPDOWN ----------
-                ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+                ExposedDropdownMenuBox(
+                    expanded = expanded, onExpandedChange = { expanded = it }, modifier = Modifier.testTag("unit_dropdown")
+                ) {
                     OutlinedTextField(
                         value = unit,
                         onValueChange = {},
@@ -282,7 +292,7 @@ fun AddPantryItemDialog(
                         label = { Text("Unit") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                         modifier = Modifier.menuAnchor(),
-                        isError = unitError
+                        isError = unitError,
                     )
 
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -300,13 +310,15 @@ fun AddPantryItemDialog(
                 if (unitError) ValidationText("Select a unit")
 
                 // ---------- PURCHASE DATE ----------
-                Button(onClick = { pickDate { purchaseDate = it } }) {
+                Button(
+                    onClick = { pickDate { purchaseDate = it } },
+                    modifier = Modifier.testTag("date_picker")
+                ) {
                     Text("Select Purchase Date")
                 }
                 if (purchaseDate != null)
                     Text("Purchase Date: ${formatter.format(purchaseDate!!)}")
 
-                if (purchaseDateError) ValidationText("Purchase date required")
 
                 // ---------- EXPIRY DATE ----------
                 Button(onClick = { pickDate { expiryDate = it } }) {
@@ -317,11 +329,16 @@ fun AddPantryItemDialog(
 
                 if (expiryDateError) ValidationText("Expiry must be after purchase date")
             }
+
         },
         confirmButton = {
             TextButton(
                 onClick = {
                     submitClicked = true
+                    if (purchaseDate == null || expiryDate == null) {
+                        // Trigger validation messages instead of crashing
+                        return@TextButton
+                    }
                     if (canSubmit) {
                         onAdd(
                             PantryItem(
@@ -334,9 +351,13 @@ fun AddPantryItemDialog(
                         )
                         onDismiss()
                     }
-                }
-            ) { Text("Add") }
+                },
+                modifier = Modifier.testTag("save_button")
+            ) {
+                Text("Save")   // MUST BE INSIDE THE BUTTON
+            }
         },
+
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -37,6 +39,7 @@ fun MarketplaceScreen(
     onViewMyListings: () -> Unit
 ) {
     val items by marketplaceViewModel.marketplaceItems.collectAsState()
+
 
     Scaffold(
         topBar = {
@@ -61,6 +64,7 @@ fun MarketplaceScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddItem,
+                modifier= Modifier.testTag("fab_add_item"),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -82,7 +86,7 @@ fun MarketplaceScreen(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
             )
-            Button(onClick = onViewMyListings, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = onViewMyListings, modifier = Modifier.fillMaxWidth().testTag("btn_view_my_listings")) {
                 Text("View My Listings")
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -115,7 +119,7 @@ fun MarketplaceListItem(item: MarketplaceItem) {
 
     Card(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth().testTag("marketplace_item"),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
@@ -209,7 +213,7 @@ fun MarketplaceListItem(item: MarketplaceItem) {
                 // Contact button
                 Button(
                     onClick = { /* contact seller */ },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("btn_contact_seller"),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Contact Seller", fontWeight = FontWeight.Bold)
@@ -228,3 +232,6 @@ fun getRelativeTime(date: Date?): String {
         DateUtils.MINUTE_IN_MILLIS
     ).toString()
 }
+
+
+
