@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Date
+import com.bipin080.ecofood.sync.FirebaseMarketplaceSync
 
 class MarketplaceViewModel(
     application: Application,
@@ -39,6 +40,10 @@ class MarketplaceViewModel(
             SharingStarted.WhileSubscribed(5000),
             emptyList()
         )
+
+    init{
+        FirebaseMarketplaceSync.start(dao, viewModelScope)
+    }
 
     /** Add an item */
     fun addItem(item: MarketplaceItem) {

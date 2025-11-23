@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import com.bipin080.ecofood.sync.FirebaseSavedRecipeSync
 
 class RecipeViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -21,7 +22,9 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
     private val dao = SavedRecipeDatabase
         .getInstance(application)
         .savedRecipeDao()
-
+init{
+    FirebaseSavedRecipeSync.start(dao,viewModelScope)
+}
     // --- currently selected recipe (for RecipeScreen) ---
     private val _currentRecipe = MutableStateFlow<GeneratedRecipe?>(null)
     val currentRecipe: StateFlow<GeneratedRecipe?> = _currentRecipe.asStateFlow()

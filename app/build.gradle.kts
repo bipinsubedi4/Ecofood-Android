@@ -92,9 +92,12 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 
     // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx:25.0.0")
+    implementation("com.google.firebase:firebase-auth-ktx:23.0.0")
+
 
     // Images
     implementation("io.coil-kt:coil-compose:2.6.0")

@@ -8,6 +8,7 @@ import com.bipin080.ecofood.data.PantryItem
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.bipin080.ecofood.sync.FirebasePantrySync
 
 class PantryViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -20,7 +21,9 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-
+        init{
+            FirebasePantrySync.start(dao, viewModelScope)
+        }
     fun addItem(item: PantryItem) {
         viewModelScope.launch {
             dao.insert(item)
