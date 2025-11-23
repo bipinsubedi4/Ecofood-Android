@@ -9,7 +9,8 @@ import java.util.UUID
 
 @Entity(tableName = "marketplace_items")
 data class MarketplaceItem(
-    @PrimaryKey val id: UUID = UUID.randomUUID(),
+    @PrimaryKey
+    val id: String ="",
     val name: String = "",
     val quantity: Int = 0,
     val unit: String = "",

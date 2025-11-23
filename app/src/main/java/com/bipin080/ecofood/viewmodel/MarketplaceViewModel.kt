@@ -1,6 +1,7 @@
 package com.bipin080.ecofood.viewmodel
 
 import android.app.Application
+import android.service.notification.Condition.newId
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bipin080.ecofood.data.MarketplaceDatabase
@@ -12,18 +13,17 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Date
 import com.bipin080.ecofood.sync.FirebaseMarketplaceSync
+import java.util.UUID
 
 class MarketplaceViewModel(
-    application: Application,
-    private val dao: MarketplaceItemDao =
-        MarketplaceDatabase.getDatabase(application).marketplaceItemDao()
-) : AndroidViewModel(application) {
+    application: Application) : AndroidViewModel(application) {
 
     companion object {
         const val LOCAL_USER_ID = "local_user"
         const val LOCAL_USER_NAME = "Local User"
     }
-
+    private val dao: MarketplaceItemDao =
+        MarketplaceDatabase.getDatabase(application).marketplaceItemDao()
     /** Marketplace feed = all items except user's own */
     val marketplaceItems = dao.getAll()
         .map { list -> list.filter { it.sellerUid != LOCAL_USER_ID } }
@@ -48,7 +48,9 @@ class MarketplaceViewModel(
     /** Add an item */
     fun addItem(item: MarketplaceItem) {
         viewModelScope.launch {
+            val newId = UUID.randomUUID().toString()
             val newItem = item.copy(
+                id= newId,
                 sellerUid = LOCAL_USER_ID,
                 sellerName = LOCAL_USER_NAME,
                 postedAt = Date()

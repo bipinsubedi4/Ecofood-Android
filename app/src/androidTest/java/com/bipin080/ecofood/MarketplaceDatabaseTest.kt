@@ -41,7 +41,7 @@ class MarketplaceDatabaseTest {
     @Test
     fun insert_and_get_all_items() = runTest {
         val item = MarketplaceItem(
-            id = UUID.randomUUID(),
+            id = "1",
             name = "Banana",
             quantity = 5,
             unit = "pcs",
@@ -67,7 +67,7 @@ class MarketplaceDatabaseTest {
     @Test
     fun get_my_listings_filters_correctly() = runTest {
         val myItem = MarketplaceItem(
-            id = UUID.randomUUID(),
+            id = "2",
             name = "Apples",
             quantity = 3,
             unit = "kg",
@@ -82,7 +82,7 @@ class MarketplaceDatabaseTest {
         )
 
         val otherItem = myItem.copy(
-            id = UUID.randomUUID(),
+            id = " ",
             sellerUid = "someone_else",
             sellerName = "Other"
         )
@@ -100,7 +100,7 @@ class MarketplaceDatabaseTest {
     @Test
     fun delete_item_removes_correct_entry() = runTest {
         val item = MarketplaceItem(
-            id = UUID.randomUUID(),
+            id = " ",
             name = "Bread",
             quantity = 1,
             unit = "loaf",
@@ -130,7 +130,7 @@ class MarketplaceDatabaseTest {
     @Test
     fun delete_all_clears_table() = runTest {
         val item1 = MarketplaceItem(
-            id = UUID.randomUUID(),
+            id = " ",
             name = "Oranges",
             quantity = 4,
             unit = "kg",
@@ -145,7 +145,7 @@ class MarketplaceDatabaseTest {
         )
 
         val item2 = item1.copy(
-            id = UUID.randomUUID(),
+            id = " ",
             name = "Grapes"
         )
 

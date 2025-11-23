@@ -3,6 +3,7 @@ package com.bipin080.ecofood.data
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
@@ -12,8 +13,9 @@ interface MarketplaceItemDao {
     @Query("SELECT * FROM marketplace_items")
     fun getAll(): Flow<List<MarketplaceItem>>
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: MarketplaceItem)
+
 
     @Query("DELETE FROM marketplace_items")
     suspend fun deleteAll()
