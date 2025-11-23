@@ -35,6 +35,10 @@ android {
             "\"$geminiApiKey\""
         )
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
 
     buildTypes {
         release {
@@ -59,7 +63,7 @@ android {
 }
 
 dependencies {
-
+    // --- Main app deps ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
@@ -72,47 +76,61 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.gemini)
     implementation(libs.kotlinx.serialization.json)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-    // navigation for compose
+
+    // Navigation for Compose
     implementation("androidx.navigation:navigation-compose:2.7.0")
 
-    // material icons set (CalendarMonth, MenuBook, etc.)
+    // Material icons extended
     implementation("androidx.compose.material:material-icons-extended:1.6.7")
 
     // Room
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
-    
-    // Gson for JSON serialization
+
+    // JSON
     implementation("com.google.code.gson:gson:2.10.1")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
-    implementation("com.google.firebase:firebase-firestore-ktx") // Added Firestore
+    implementation("com.google.firebase:firebase-firestore-ktx")
+
+    // Images
     implementation("io.coil-kt:coil-compose:2.6.0")
 
+    // Debug only
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // --- ✅ UNIT TEST DEPS (src/test) ---
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("com.google.truth:truth:1.1.5")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+    testImplementation("org.robolectric:robolectric:4.13")
+    testImplementation("androidx.test:core:1.5.0")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("org.robolectric:shadows-framework:4.13")
+
+    // --- ✅ ANDROID TEST DEPS (src/androidTest) ---
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 
-// Room testing
+    // Room testing (instrumentation tests)
     androidTestImplementation("androidx.room:room-testing:2.6.1")
 
-// Coroutines test
+    // Coroutines / Truth / Turbine for androidTest as well
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-
-// Truth
     androidTestImplementation("com.google.truth:truth:1.1.5")
-
-// Turbine for Flow testing
     androidTestImplementation("app.cash.turbine:turbine:1.0.0")
-
-
 }
+
+
+
+
+
+
+

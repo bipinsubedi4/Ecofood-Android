@@ -5,47 +5,42 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bipin080.ecofood.data.MarketplaceDatabase
 import com.bipin080.ecofood.data.MarketplaceItem
+import com.bipin080.ecofood.data.MarketplaceItemDao
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Date
 
-class MarketplaceViewModel(application: Application) : AndroidViewModel(application) {
+class MarketplaceViewModel(
+    application: Application,
+    private val dao: MarketplaceItemDao =
+        MarketplaceDatabase.getDatabase(application).marketplaceItemDao()
+) : AndroidViewModel(application) {
 
     companion object {
-        // Temporary local-only identity
         const val LOCAL_USER_ID = "local_user"
         const val LOCAL_USER_NAME = "Local User"
     }
 
-    private val marketplaceDao =
-        MarketplaceDatabase.getDatabase(application).marketplaceItemDao()
+    /** Marketplace feed = all items except user's own */
+    val marketplaceItems = dao.getAll()
+        .map { list -> list.filter { it.sellerUid != LOCAL_USER_ID } }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
 
+    /** My listings = only items created by local user */
+    val myListings = dao.getMyListings(LOCAL_USER_ID)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
 
-    /**
-     * MAIN MARKETPLACE:
-     * - Start from all items in Room
-     * - Filter out the ones created by the local user
-     */
-    val marketplaceItems: StateFlow<List<MarketplaceItem>> =
-        marketplaceDao.getAll()
-            .map { items -> items.filter { it.sellerUid != LOCAL_USER_ID } }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    /**
-     * MY LISTINGS:
-     * - Only items where sellerUid == LOCAL_USER_ID
-     */
-    val myListings: StateFlow<List<MarketplaceItem>> =
-        marketplaceDao.getMyListings(LOCAL_USER_ID)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    /**
-     * Insert new listing into LOCAL Room DB,
-     * tagging it as created by this user.
-     */
+    /** Add an item */
     fun addItem(item: MarketplaceItem) {
         viewModelScope.launch {
             val newItem = item.copy(
@@ -53,17 +48,14 @@ class MarketplaceViewModel(application: Application) : AndroidViewModel(applicat
                 sellerName = LOCAL_USER_NAME,
                 postedAt = Date()
             )
-            marketplaceDao.insert(newItem)
+            dao.insert(newItem)
         }
     }
 
-    /**
-     * Delete one listing.
-     * This will automatically update both marketplaceItems and myListings flows.
-     */
+    /** Delete an item */
     fun deleteItem(item: MarketplaceItem) {
         viewModelScope.launch {
-            marketplaceDao.delete(item)
+            dao.delete(item)
         }
     }
 }

@@ -10,6 +10,7 @@ data class RecipeIngredient(
     val inPantry: Boolean
 )
 
+
 @Serializable
 data class GeneratedRecipe(
     val title: String,
