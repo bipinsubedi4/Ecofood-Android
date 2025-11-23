@@ -72,8 +72,6 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.gemini)
     implementation(libs.kotlinx.serialization.json)
-
-    testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -99,5 +97,22 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx") // Added Firestore
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+
+// Room testing
+    androidTestImplementation("androidx.room:room-testing:2.6.1")
+
+// Coroutines test
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+
+// Truth
+    androidTestImplementation("com.google.truth:truth:1.1.5")
+
+// Turbine for Flow testing
+    androidTestImplementation("app.cash.turbine:turbine:1.0.0")
+
 
 }
