@@ -39,7 +39,7 @@
 
 1.  **Clone the Repository:**
     ```bash
-    git clone <your-repository-url>
+    git clone <https://github.com/bipinsubedi4/Ecofood-Android>
     ```
 2.  **Open in Android Studio:** Open the cloned directory in the latest version of Android Studio.
 3.  **Add Firebase Configuration:**
