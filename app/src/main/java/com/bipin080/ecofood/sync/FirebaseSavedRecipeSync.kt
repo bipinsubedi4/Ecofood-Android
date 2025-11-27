@@ -11,38 +11,46 @@ import kotlinx.coroutines.launch
 
 object FirebaseSavedRecipeSync {
 
-    private val firestore = FirebaseFirestore.getInstance()
+    /** Allow disabling sync in unit tests */
+    @JvmStatic
+    var ENABLED = true
+
+    /** Lazy Firebase — prevents crash during JVM tests */
+    private val firestore: FirebaseFirestore by lazy {
+        FirebaseFirestore.getInstance()
+    }
 
     private fun currentUserId(): String =
         FirebaseAuth.getInstance().currentUser?.uid ?: "local_user"
 
     fun start(recipeDao: SavedRecipeDao, scope: CoroutineScope) {
+        if (!ENABLED) return  // <-- TEST SAFE
+
         val userId = currentUserId()
         val collection = firestore.collection("users")
             .document(userId)
             .collection("savedRecipes")
 
         /* -------------------------------
-         * STEP 1: One-time pull from Firestore → Room
+         * STEP 1: Firestore → Room (pull)
          * ------------------------------- */
         collection.get().addOnSuccessListener { snapshot ->
             scope.launch {
-                val recipes = snapshot.documents.mapNotNull { it.toSavedRecipeEntity() }
-
-                recipes.forEach { recipeDao.insert(it) }
+                snapshot.documents
+                    .mapNotNull { it.toSavedRecipeEntity() }
+                    .forEach { recipeDao.insert(it) }
             }
         }
 
         /* -------------------------------
-         * STEP 2: Continuous push Room → Firestore
+         * STEP 2: Room → Firestore (push)
          * ------------------------------- */
         scope.launch {
             recipeDao.getAll().collect { recipes ->
                 recipes.forEach { recipe ->
-                    val data = recipe.toFirestoreData()
                     collection
                         .document(recipe.id.toString())
-                        .set(data)
+                        .set(recipe.toFirestoreData())
                 }
             }
         }
@@ -63,23 +71,15 @@ object FirebaseSavedRecipeSync {
     private fun DocumentSnapshot.toSavedRecipeEntity(): SavedRecipeEntity? {
         val idLong = id.toLongOrNull() ?: return null
 
-        val title = getString("title") ?: return null
-        val description = getString("description") ?: ""
-        val cookingTime = getString("cookingTime") ?: ""
-        val servings = getString("servings") ?: ""
-        val wasteReduction = getString("wasteReduction") ?: ""
-        val calories = getString("calories") ?: ""
-        val ingredientsJson = getString("ingredientsJson") ?: "[]"
-
         return SavedRecipeEntity(
             id = idLong,
-            title = title,
-            description = description,
-            cookingTime = cookingTime,
-            servings = servings,
-            wasteReduction = wasteReduction,
-            calories = calories,
-            ingredientsJson = ingredientsJson
+            title = getString("title") ?: return null,
+            description = getString("description") ?: "",
+            cookingTime = getString("cookingTime") ?: "",
+            servings = getString("servings") ?: "",
+            wasteReduction = getString("wasteReduction") ?: "",
+            calories = getString("calories") ?: "",
+            ingredientsJson = getString("ingredientsJson") ?: "[]"
         )
     }
 }

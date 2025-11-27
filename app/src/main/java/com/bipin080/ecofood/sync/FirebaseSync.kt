@@ -10,22 +10,26 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
-import java.lang.reflect.Array.getDouble
 import java.util.Date
 import java.util.UUID
 
-/**
- * Common helper to get current user ID.
- * Falls back to "local_user" if not logged in.
- */
+/* ---------------------------------------------------------- */
+/*  COMMON HELPER                                              */
+/* ---------------------------------------------------------- */
 private fun currentUserId(): String =
     FirebaseAuth.getInstance().currentUser?.uid ?: "local_user"
 
-/* ----------------------- PANTRY SYNC ----------------------- */
+
+/* ---------------------------------------------------------- */
+/*  PANTRY SYNC                                                */
+/* ---------------------------------------------------------- */
 
 object FirebasePantrySync {
 
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    // Lazy = safe for tests
+    private val firestore: FirebaseFirestore by lazy {
+        FirebaseFirestore.getInstance()
+    }
 
     fun start(pantryDao: PantryItemDao, scope: CoroutineScope) {
         val userId = currentUserId()
@@ -33,7 +37,7 @@ object FirebasePantrySync {
             .document(userId)
             .collection("pantry")
 
-        // 1) One-time pull from Firestore -> Room
+        // --- Pull Firestore → Local Room ---
         pantryCollection
             .get()
             .addOnSuccessListener { snapshot ->
@@ -44,14 +48,13 @@ object FirebasePantrySync {
                 }
             }
 
-        // 2) Continuous push from Room -> Firestore
+        // --- Push Local Room → Firestore ---
         scope.launch {
             pantryDao.getAll().collect { items ->
                 items.forEach { item ->
-                    val data = item.toFirestoreData()
                     pantryCollection
                         .document(item.id.toString())
-                        .set(data)
+                        .set(item.toFirestoreData())
                 }
             }
         }
@@ -89,27 +92,37 @@ object FirebasePantrySync {
     }
 }
 
-/* -------------------- MARKETPLACE SYNC --------------------- */
+
+/* ---------------------------------------------------------- */
+/*  MARKETPLACE SYNC                                           */
+/* ---------------------------------------------------------- */
 
 object FirebaseMarketplaceSync {
 
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    /** Enables/disables sync in tests */
+    @JvmStatic
+    var ENABLED = true
+
+    // Lazy = safe for tests
+    private val firestore: FirebaseFirestore by lazy {
+        FirebaseFirestore.getInstance()
+    }
 
     fun start(marketplaceDao: MarketplaceItemDao, scope: CoroutineScope) {
+        if (!ENABLED) return
+
         val userId = currentUserId()
         val marketplaceCollection = firestore.collection("users")
             .document(userId)
             .collection("marketplace")
 
-
-        // Continuous push from Room -> Firestore
+        // --- Push Local Room → Firestore ---
         scope.launch {
             marketplaceDao.getAll().collect { items ->
                 items.forEach { item ->
-                    val data = item.toFirestoreData()
                     marketplaceCollection
                         .document(item.id.toString())
-                        .set(data)
+                        .set(item.toFirestoreData())
                 }
             }
         }
@@ -130,8 +143,7 @@ object FirebaseMarketplaceSync {
     )
 
     private fun DocumentSnapshot.toMarketplaceItemOrNull(): MarketplaceItem? {
-
-            return null
-        }
-
+        // You currently don't use Marketplace pull logic
+        return null
+    }
 }

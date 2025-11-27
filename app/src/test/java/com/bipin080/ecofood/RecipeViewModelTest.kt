@@ -3,10 +3,12 @@ package com.bipin080.ecofood
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.bipin080.ecofood.data.*
+import com.bipin080.ecofood.sync.FirebaseSavedRecipeSync
 import com.bipin080.ecofood.viewmodel.RecipeViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -16,7 +18,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import kotlin.intArrayOf
 
 @RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -28,15 +29,16 @@ class RecipeViewModelTest {
 
     @Before
     fun setup() = runTest {
-        val context = ApplicationProvider.getApplicationContext<android.app.Application>()
-        val gson = Gson()
-        db = SavedRecipeDatabase.getInstance(context)
+        // 🔥 Disable Firebase Sync for unit tests (prevents Firestore crash)
+        FirebaseSavedRecipeSync.ENABLED = false
 
-        // Clear table before each test
+        val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+
+        // Fresh in-memory DB for each test
+        db = SavedRecipeDatabase.getInstance(context)
         db.savedRecipeDao().clear()
 
         viewModel = RecipeViewModel(context)
-
     }
 
     @After
@@ -45,7 +47,7 @@ class RecipeViewModelTest {
     }
 
     // -----------------------------------------------------
-    // 1️⃣ setRecipe() should update the current recipe state
+    // 1️⃣ setRecipe() should update currentRecipe state
     // -----------------------------------------------------
     @Test
     fun setRecipe_setsCurrentRecipe() = runTest {
@@ -66,7 +68,7 @@ class RecipeViewModelTest {
     }
 
     // -----------------------------------------------------
-    // 2️⃣ saveRecipe() should insert into DB
+    // 2️⃣ saveRecipe() inserts into DB
     // -----------------------------------------------------
     @Test
     fun saveRecipe_addsRecipeToDatabase() = runTest {
@@ -81,16 +83,21 @@ class RecipeViewModelTest {
         )
 
         viewModel.saveRecipe(recipe)
+
+        // 🔥 RUN ALL COROUTINES
+        advanceUntilIdle()
+
+        // 🔥 RUN ALL MAIN-LOOPER QUEUED TASKS
         shadowOf(Looper.getMainLooper()).idle()
 
-
         val saved = db.savedRecipeDao().getAllOnce()
+
         assertEquals(1, saved.size)
         assertEquals("Momo", saved[0].title)
     }
 
     // -----------------------------------------------------
-    // 3️⃣ deleteRecipe() should remove the item from DB
+    // 3️⃣ deleteRecipe() removes item from DB
     // -----------------------------------------------------
     @Test
     fun deleteRecipe_removesRecipeFromDatabase() = runTest {
@@ -104,21 +111,22 @@ class RecipeViewModelTest {
             wasteReduction = ""
         )
 
-        // Convert to saved entity and insert
         val gson = Gson()
-        val savedEntity = SavedRecipeEntity.fromGeneratedRecipe(recipe,gson)
+        val savedEntity = SavedRecipeEntity.fromGeneratedRecipe(recipe, gson)
+
         db.savedRecipeDao().insert(savedEntity)
 
-        // Now delete via ViewModel (MUST pass SavedRecipeEntity)
+        // MUST pass the GeneratedRecipe (ViewModel creates its own entity)
         viewModel.deleteRecipe(recipe)
+
+        shadowOf(Looper.getMainLooper()).idle()
 
         val saved = db.savedRecipeDao().getAllOnce()
         assertEquals(0, saved.size)
     }
-
 }
 
-// Helper extension to fetch list without Flow
+// Helper: fetch Room list once without collecting Flow
 suspend fun SavedRecipeDao.getAllOnce(): List<SavedRecipeEntity> {
     return getAll().first()
 }

@@ -1,6 +1,9 @@
 package com.bipin080.ecofood.data
 
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
+
+@OptIn(InternalSerializationApi::class)
 
 @Serializable
 data class RecipeIngredient(
@@ -10,7 +13,7 @@ data class RecipeIngredient(
     val inPantry: Boolean
 )
 
-
+@OptIn(InternalSerializationApi::class)
 @Serializable
 data class GeneratedRecipe(
     val title: String,
